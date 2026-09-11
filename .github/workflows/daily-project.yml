@@ -1,8 +1,11 @@
 name: Daily project
 
 on:
-  schedule:
-    - cron: "0 21 * * *"        # 05:00 Asia/Manila (UTC+8)
+  # Paused until a manual run produces a verified PR. To turn the daily run on,
+  # uncomment the next two lines. Commit that edit yourself: GitHub attributes
+  # scheduled runs to whoever last changed the cron, and it rejects bot actors.
+  # schedule:
+  #   - cron: "0 21 * * *"      # 05:00 Asia/Manila (UTC+8)
   workflow_dispatch:
     inputs:
       idea:
