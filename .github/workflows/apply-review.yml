@@ -1,0 +1,92 @@
+name: Apply weekly review
+
+# Triggered when the repo OWNER comments /apply on a weekly-review issue.
+# Applies only the ticked items, validated by scripts/apply_review.py, and
+# opens a pull request. Merging that PR is the final confirmation.
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: apply-review-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  apply:
+    if: >-
+      !github.event.issue.pull_request &&
+      contains(github.event.issue.labels.*.name, 'weekly-review') &&
+      startsWith(github.event.comment.body, '/apply') &&
+      github.event.comment.author_association == 'OWNER'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install factory tooling
+        run: pip install -r scripts/requirements.txt
+
+      - name: Acknowledge
+        run: gh api -X POST "repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" -f content=eyes >/dev/null
+
+      # Read the issue as it is now, with the owner's current ticks.
+      - name: Fetch the issue body
+        run: gh issue view "$ISSUE" --json body --jq .body > .issue-body.md
+
+      - name: Apply ticked items
+        run: python3 scripts/apply_review.py .issue-body.md --out .apply-summary.md
+
+      - name: Write PR body
+        run: |
+          {
+            echo "Applies the items ticked in #$ISSUE."
+            echo
+            cat .apply-summary.md
+            echo
+            echo "Merging this closes #$ISSUE and republishes the showcase."
+            echo
+            echo "Closes #$ISSUE"
+          } > .apply-pr-body.md
+
+      - name: Open pull request
+        id: pr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: review/apply-${{ github.event.issue.number }}
+          title: "Apply weekly review #${{ github.event.issue.number }}"
+          commit-message: "Apply weekly review #${{ github.event.issue.number }}"
+          body-path: .apply-pr-body.md
+          labels: weekly-review
+          # Only the flags and the backlog — nothing else can ride along.
+          add-paths: |
+            projects/*/project.json
+            backlog/ideas.yml
+
+      - name: Report back on the issue
+        env:
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+          PR_OP: ${{ steps.pr.outputs.pull-request-operation }}
+        run: |
+          {
+            cat .apply-summary.md
+            echo
+            if [ -n "$PR_URL" ]; then
+              echo "**Pull request (${PR_OP:-updated}):** $PR_URL. Merge it to publish."
+            else
+              echo "Nothing needed changing, so no pull request was opened."
+            fi
+          } > .apply-comment.md
+          gh issue comment "$ISSUE" --body-file .apply-comment.md

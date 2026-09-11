@@ -63,8 +63,12 @@ ideas:
     tags: [vulnerability, classification, cvss, kev]
     source: cisa-kev
     difficulty: medium
-    status: ready
-    note: Join CISA KEV to NVD scores. The answer is "weakly", which makes for a strong talk.
+    status: built
+    built: 2026-09-11-cvss-vs-exploitation
+    note: >
+      Join CISA KEV to NVD scores. Built 2026-09-11. The answer turned out to be more
+      interesting than "weakly": CVSS ranks at AUC 0.716, which is real signal, but a
+      1.06% base rate makes the >= 7.0 queue 98.34% waste. The base rate is the story.
 
   - slug: epss-vs-cvss-triage
     title: Would EPSS-first patching beat CVSS-first patching?

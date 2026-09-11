@@ -2,6 +2,19 @@
 # factory-pick-idea reads the last 14 days of this to avoid near-duplicate builds.
 
 built:
+  - slug: 2026-09-11-cvss-vs-exploitation
+    idea: cvss-vs-exploitation
+    title: Does a high CVSS score actually predict that a CVE gets exploited?
+    date: 2026-09-11
+    theme: cyber
+    tags: [vulnerability, classification, cvss, kev]
+    source: cisa-kev
+    also_uses: nvd-cve
+    status: passed
+    headline: >
+      20,149 CVEs published in 2021, 214 later confirmed exploited (1.06%).
+      CVSS base score ranks at AUC 0.716, but "patch everything >= 7.0" queues
+      55.7% of the year and 98.34% of that queue was never exploited.
   - slug: 2026-09-11-manila-rainfall-extremes
     date: 2026-09-11
     theme: environment

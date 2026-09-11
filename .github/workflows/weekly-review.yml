@@ -1,0 +1,74 @@
+name: Weekly review
+
+# A read-only reviewer agent assesses the week's projects and the factory's
+# health, then opens an issue of checkbox recommendations. Nothing here commits:
+# the owner ticks what they agree with and comments /apply (see apply-review.yml).
+
+on:
+  schedule:
+    - cron: "0 1 * * 6"         # Saturday 09:00 Asia/Manila (UTC+8)
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-review
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install factory tooling
+        run: pip install -r scripts/requirements.txt
+
+      # Facts first, from the GitHub API, so the reviewer never needs a shell.
+      # Also copies unmerged projects into projects/ so they can be read.
+      - name: Gather the week's facts
+        run: python3 scripts/review_context.py --days 7
+
+      - name: Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          settings: .github/reviewer-settings.json
+          prompt: "/factory-review"
+          claude_args: |
+            --model claude-opus-5
+            --permission-mode acceptEdits
+            --permission-prompts none
+            --max-turns 60
+
+      - name: Open the review issue
+        run: |
+          if [ ! -s .review.md ]; then
+            echo "::error::The reviewer produced no .review.md."
+            exit 1
+          fi
+          if ! grep -q '<!-- action:' .review.md; then
+            echo "::warning::The review has no actionable items this week."
+          fi
+          prev="$(gh issue list --label weekly-review --state open --json number --jq '[.[].number] | map("#\(.)") | join(", ")')"
+          if [ -n "$prev" ]; then
+            printf '\n> [!NOTE]\n> Earlier review(s) still open: %s. /apply still works on them.\n' "$prev" >> .review.md
+          fi
+          gh label create weekly-review --color 5319e7 --description "Weekly factory review" --force
+          gh issue create \
+            --title "Weekly review — week of $(date -u +%Y-%m-%d)" \
+            --label weekly-review \
+            --body-file .review.md
