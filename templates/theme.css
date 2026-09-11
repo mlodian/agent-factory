@@ -1,0 +1,80 @@
+/* @theme factory */
+
+@import 'default';
+
+section {
+  --ink: #1b1f24;
+  --muted: #5b6470;
+  --accent: #2f6fdb;
+  --rule: #e3e7ec;
+  --paper: #fbfbf9;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 30px;
+  padding: 64px 80px;
+  line-height: 1.4;
+}
+
+h1, h2 {
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 1.6em;
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 0.2em;
+  margin-bottom: 0.8em;
+  display: inline-block;
+}
+
+ul { padding-left: 1.1em; }
+li { margin: 0.35em 0; }
+li::marker { color: var(--accent); }
+
+strong { color: var(--accent); }
+
+table {
+  border-collapse: collapse;
+  font-size: 0.85em;
+  width: 100%;
+}
+th, td {
+  border-bottom: 1px solid var(--rule);
+  padding: 0.45em 0.8em;
+  text-align: left;
+}
+th { color: var(--muted); font-weight: 600; }
+td:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+pre {
+  background: #14171c;
+  color: #e8ecf1;
+  border-radius: 8px;
+  font-size: 0.75em;
+  padding: 0.9em 1.1em;
+}
+
+footer, section::after {
+  color: var(--muted);
+  font-size: 0.55em;
+}
+
+img { display: block; margin: 0 auto; }
+
+/* Title and closing slides */
+section.title {
+  justify-content: center;
+  background: var(--ink);
+  color: var(--paper);
+}
+section.title h1 { color: var(--paper); font-size: 2.2em; margin-bottom: 0.2em; }
+section.title h2 { color: var(--paper); border-bottom-color: var(--accent); }
+section.title p  { color: #b9c2cc; }
+section.title strong { color: #8fb4ff; }
+
+/* Demo slide: the terminal is the content */
+section.demo pre { font-size: 1em; }

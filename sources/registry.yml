@@ -1,0 +1,433 @@
+# Data source registry — the allowlist.
+#
+# The pick-idea agent may ONLY build projects against sources listed here.
+# It may not invent a source, and it may not substitute generated data when a
+# source is unreachable. Adding a new source is a human decision: open an issue.
+#
+# Every tier-1 entry below was verified returning HTTP 200 with real data on
+# 2026-09-11. Re-run `python3 scripts/check_sources.py` to re-verify.
+#
+# Fields:
+#   id         stable slug, referenced by backlog/ideas.yml and data/SOURCE.md
+#   domain     finance | cyber | health | environment | marketing | science | civic | ml
+#   auth       none | token | ua-required
+#   licence    what you must honour when redistributing
+#   verified   date the endpoint was last confirmed live
+
+sources:
+
+  # ─────────────────────────── FINANCE & ECONOMICS ───────────────────────────
+
+  - id: worldbank
+    name: World Bank Open Data
+    domain: finance
+    auth: none
+    base_url: https://api.worldbank.org/v2
+    example: /country/PHL/indicator/BX.TRF.PWKR.CD.DT?format=json
+    formats: [json, xml]
+    licence: CC BY 4.0
+    verified: 2026-09-11
+    notes: >
+      1,400+ indicators × 200+ countries × 60 years. Personal remittances,
+      inflation, GDP, population, energy. The single most reliable source here.
+      Paginated: pass per_page and page.
+
+  - id: sec-edgar
+    name: SEC EDGAR XBRL company facts
+    domain: finance
+    auth: ua-required          # needs FACTORY_CONTACT_EMAIL — see notes
+    base_url: https://data.sec.gov/api/xbrl
+    example: /companyconcept/CIK0000320193/us-gaap/Revenues.json
+    formats: [json]
+    licence: US public domain
+    verified: 2026-09-11
+    rate_limit: 10 req/sec
+    notes: >
+      Real audited financials from 10-K/10-Q filings for every US public company.
+      The User-Agent MUST NOT contain a URL — verified: a UA with "+https://…" gets
+      403, while "agent-factory/1.0" and "agent-factory/1.0 (you@x.com)" both get 200.
+      SEC's fair-access policy asks for a declared contact email, so set
+      FACTORY_CONTACT_EMAIL. companyfacts/ returns every tag at once; companyconcept/
+      returns one. CIK must be zero-padded to 10 digits.
+
+  - id: frankfurter
+    name: Frankfurter (ECB reference rates)
+    domain: finance
+    auth: none
+    base_url: https://api.frankfurter.dev/v1
+    example: /latest?from=USD&to=PHP  |  /2020-01-01..2026-09-01?from=USD&to=PHP
+    formats: [json]
+    licence: Open (ECB data)
+    verified: 2026-09-11
+    notes: >
+      Daily FX back to 1999. Supports date ranges in one call. The old host
+      api.frankfurter.app now 301-redirects here — a client that doesn't follow
+      redirects silently saves the redirect page instead of the data.
+
+  - id: coingecko
+    name: CoinGecko public API
+    domain: finance
+    auth: none
+    base_url: https://api.coingecko.com/api/v3
+    example: /coins/markets?vs_currency=usd&per_page=3
+    formats: [json]
+    licence: Free tier, attribution required
+    verified: 2026-09-11
+    rate_limit: ~10-30 req/min — back off aggressively
+    notes: Prices, market caps, historical OHLC. Rate limit is the main hazard.
+
+  # ───────────────────────────── CYBERSECURITY ─────────────────────────────
+
+  - id: nvd-cve
+    name: NIST National Vulnerability Database
+    domain: cyber
+    auth: none                 # optional free key raises the rate limit
+    base_url: https://services.nvd.nist.gov/rest/json/cves/2.0
+    example: ?resultsPerPage=2000&pubStartDate=2026-01-01T00:00:00.000&pubEndDate=2026-04-30T23:59:59.999
+    formats: [json]
+    licence: US public domain
+    verified: 2026-09-11
+    rate_limit: 5 req/30s without a key, 50 with
+    notes: >
+      389,907 CVEs with CVSS vectors, CWE mappings, CPE configs, references.
+      Rich enough for severity modelling, vendor analysis, and disclosure-lag studies.
+      pubStartDate REQUIRES pubEndDate, max 120-day window — a start date alone
+      returns 404. Page through longer periods in 120-day chunks.
+
+  - id: cisa-kev
+    name: CISA Known Exploited Vulnerabilities catalog
+    domain: cyber
+    auth: none
+    base_url: https://www.cisa.gov/sites/default/files/feeds
+    example: /known_exploited_vulnerabilities.json
+    formats: [json, csv]
+    licence: US public domain
+    verified: 2026-09-11
+    notes: >
+      ~1.7 MB single file — every CVE confirmed exploited in the wild, with the
+      date added and the remediation due date. Pairs with nvd-cve and epss to ask
+      "does CVSS actually predict exploitation?" (Spoiler: weakly. Good project.)
+
+  - id: epss
+    name: FIRST.org EPSS exploit-prediction scores
+    domain: cyber
+    auth: none
+    base_url: https://api.first.org/data/v1/epss
+    example: ?limit=100&order=!epss
+    formats: [json, csv]
+    licence: Open, attribution required
+    verified: 2026-09-11
+    notes: Daily probability that a CVE will be exploited. The third leg of the triad above.
+
+  # ──────────────────────────────── HEALTH ────────────────────────────────
+
+  - id: openfda
+    name: openFDA
+    domain: health
+    auth: none                 # optional key raises limits
+    base_url: https://api.fda.gov
+    example: /drug/event.json?limit=100  |  /food/enforcement.json  |  /device/recall.json
+    formats: [json]
+    licence: US public domain
+    verified: 2026-09-11
+    rate_limit: 240 req/min, 1000 req/day without a key
+    notes: >
+      Adverse drug events, recalls, device failures, labelling. Supports
+      server-side counting (&count=field) which makes aggregate work cheap.
+
+  - id: clinicaltrials
+    name: ClinicalTrials.gov API v2
+    domain: health
+    auth: none
+    base_url: https://clinicaltrials.gov/api/v2
+    example: /studies?pageSize=100&query.cond=diabetes
+    formats: [json, csv]
+    licence: US public domain
+    verified: 2026-09-11
+    notes: >
+      500k+ trials with phase, status, sponsor, enrolment, outcomes.
+      Good for "how many trials are never published?" style analyses.
+
+  - id: who-gho
+    name: WHO Global Health Observatory (OData)
+    domain: health
+    auth: none
+    base_url: https://ghoapi.azureedge.net/api
+    example: /Indicator  |  /WHOSIS_000001?$filter=SpatialDim eq 'PHL'
+    formats: [json]
+    licence: CC BY-NC-SA 3.0 IGO
+    verified: 2026-09-11
+    notes: OData query syntax ($filter/$top/$select). 2,000+ indicators, all countries.
+
+  # ───────────────────────────── ENVIRONMENT ─────────────────────────────
+
+  - id: open-meteo
+    name: Open-Meteo
+    domain: environment
+    auth: none
+    base_url: https://archive-api.open-meteo.com/v1/archive
+    example: ?latitude=14.6&longitude=120.98&start_date=2020-01-01&end_date=2026-08-01&daily=temperature_2m_max
+    formats: [json, csv]
+    licence: CC BY 4.0, free for non-commercial
+    verified: 2026-09-11
+    notes: >
+      Hourly/daily history back to 1940 for any coordinate, plus forecast and
+      air-quality endpoints. No key, generous limits. The best weather source available.
+
+  - id: nasa-power
+    name: NASA POWER
+    domain: environment
+    auth: none
+    base_url: https://power.larc.nasa.gov/api/temporal/daily/point
+    example: ?parameters=T2M,PRECTOTCORR&community=RE&latitude=14.6&longitude=120.98&start=20200101&end=20260801&format=JSON
+    formats: [json, csv]
+    licence: US public domain
+    verified: 2026-09-11
+    notes: Solar irradiance and meteorology from satellite reanalysis. Back to 1981.
+
+  - id: usgs-earthquake
+    name: USGS Earthquake Catalog (FDSN)
+    domain: environment
+    auth: none
+    base_url: https://earthquake.usgs.gov/fdsnws/event/1/query
+    example: ?format=geojson&starttime=2026-01-01&minmagnitude=4.5
+    formats: [geojson, csv, xml]
+    licence: US public domain
+    verified: 2026-09-11
+    notes: >
+      Every recorded quake with magnitude, depth, coordinates, time. Append-only
+      and continuously updated — ideal for incremental-ingestion projects.
+
+  # ──────────────────────── MARKETING / SALES / TECH ────────────────────────
+
+  - id: hackernews
+    name: Hacker News (Firebase API)
+    domain: marketing
+    auth: none
+    base_url: https://hacker-news.firebaseio.com/v0
+    example: /topstories.json  |  /item/8863.json
+    formats: [json]
+    licence: Open
+    verified: 2026-09-11
+    notes: >
+      Every story/comment since 2006. Excellent proxy for developer-tool attention,
+      launch timing, and title effects on engagement. One request per item — batch politely.
+
+  - id: wikimedia-pageviews
+    name: Wikimedia Pageviews API
+    domain: marketing
+    auth: none
+    base_url: https://wikimedia.org/api/rest_v1/metrics/pageviews
+    example: /per-article/en.wikipedia/all-access/all-agents/Bitcoin/daily/20240101/20260901
+    formats: [json]
+    licence: CC BY-SA
+    verified: 2026-09-11
+    notes: >
+      Hourly/daily attention series per article since 2015. The closest thing to
+      free Google Trends, and unlike Trends it returns absolute numbers.
+
+  - id: nyc-open-data
+    name: NYC Open Data (Socrata SODA)
+    domain: civic
+    auth: none                 # optional app token raises limits
+    base_url: https://data.cityofnewyork.us/resource
+    example: /erm2-nwe9.json?$limit=50000&$where=created_date>'2026-01-01'
+    formats: [json, csv, geojson]
+    licence: Open (NYC)
+    verified: 2026-09-11
+    notes: >
+      311 complaints, taxi trips, restaurant inspections, permits. SoQL supports
+      $where/$group/$order server-side. The same SODA API works on hundreds of
+      other city portals — swap the host.
+
+  - id: github-api
+    name: GitHub REST API
+    domain: marketing
+    auth: token                # use the workflow's GITHUB_TOKEN: 5,000 req/hr
+    base_url: https://api.github.com
+    example: /search/repositories?q=language:python+stars:>1000&sort=stars
+    formats: [json]
+    licence: Per-repo
+    verified: 2026-09-11
+    notes: Ecosystem adoption, release cadence, issue response times.
+
+  # ──────────────────────────── SCIENCE / TEXT ────────────────────────────
+
+  - id: openalex
+    name: OpenAlex
+    domain: science
+    auth: none                 # pass &mailto= for the polite pool
+    base_url: https://api.openalex.org
+    example: /works?filter=concepts.id:C41008148&per-page=200&mailto=YOU@example.com
+    formats: [json]
+    licence: CC0
+    verified: 2026-09-11
+    notes: 250M+ works with abstracts, citations, authors, institutions. CC0 — no restrictions.
+
+  - id: crossref
+    name: Crossref
+    domain: science
+    auth: none
+    base_url: https://api.crossref.org
+    example: /works?rows=100&filter=from-pub-date:2026-01-01&mailto=YOU@example.com
+    formats: [json]
+    licence: Open
+    verified: 2026-09-11
+    notes: DOI metadata for 150M+ records. Complements OpenAlex.
+
+  - id: arxiv
+    name: arXiv API
+    domain: science
+    auth: none
+    base_url: https://export.arxiv.org/api/query
+    example: ?search_query=cat:cs.CL&max_results=100
+    formats: [atom]
+    licence: Per-paper
+    verified: 2026-09-11
+    notes: Atom XML, not JSON. Max 3 req/sec. Good NLP corpus with real structure.
+
+  # ──────────────────────────── PHILIPPINES ────────────────────────────
+  # Higher effort (file parsing, not clean JSON) but they differentiate the
+  # portfolio. Require a pinned download + checksum rather than a live call.
+
+  - id: psa-openstat
+    name: PSA OpenSTAT (PXWeb API)
+    domain: civic
+    auth: none
+    base_url: https://openstat.psa.gov.ph/PXWeb/api/v1/en
+    example: /
+    formats: [json, csv, px]
+    licence: PSA terms — public statistical release, attribution required
+    verified: 2026-09-11
+    difficulty: medium
+    notes: >
+      Use the PXWeb JSON API, NOT the /Database web page — the page sits behind a
+      Cloudflare bot challenge that blocks even browser User-Agents, so an unattended
+      agent can never get through it. The API returns 200 cleanly. Walk the tree with
+      GET, then POST a JSON query to a table path to extract data.
+
+  - id: bsp-statfile
+    name: BSP Online Statistical Database
+    domain: finance
+    auth: none
+    base_url: https://www.bsp.gov.ph/PXWeb2007/dialog/statfile1.asp
+    formats: [xlsx, txt, html]
+    licence: BSP terms — public statistical release, attribution required
+    verified: 2026-09-11
+    difficulty: medium
+    unattended: false          # the daily agent must not pick this — see notes
+    notes: >
+      PC-Axis engine. Monthly OFW cash remittances back to 1989, inflation, FX,
+      banking aggregates. UNRELIABLE FOR AUTOMATION: returned 200, then 403 an hour
+      later for both a bot and a browser User-Agent, including on the landing page —
+      intermittent IP/rate blocking, and GitHub runners' datacenter IPs are the
+      likeliest to be blocked. Use it for hand-fetched projects (download locally,
+      commit the file with its checksum). For automated work, worldbank's
+      BX.TRF.PWKR.CD.DT carries the same remittance series annually.
+
+  - id: hdx
+    name: Humanitarian Data Exchange
+    domain: civic
+    auth: none
+    base_url: https://data.humdata.org/api/3/action
+    example: /package_search?q=philippines&rows=10
+    formats: [json, csv, xlsx]
+    licence: Varies per dataset — record it
+    verified: 2026-09-11
+    notes: CKAN API. Typhoon, displacement, food security. Check each dataset's licence.
+
+  # ─────────────────────── DATASET REPOSITORIES (bulk) ───────────────────────
+
+  - id: huggingface
+    name: Hugging Face Datasets
+    domain: ml
+    auth: none
+    base_url: https://huggingface.co/api/datasets
+    formats: [parquet, json, csv]
+    licence: Per-dataset — MUST be recorded in SOURCE.md
+    verified: 2026-09-11
+    notes: Load with `datasets`. Pin the revision SHA for reproducibility.
+
+  - id: openml
+    name: OpenML
+    domain: ml
+    auth: none
+    base_url: https://www.openml.org/api/v1/json
+    example: /data/list/limit/5
+    formats: [arff, csv, parquet]
+    licence: Mostly CC BY / public domain — record per dataset
+    verified: 2026-09-11
+    notes: Versioned, numbered datasets with published baselines to compare against.
+
+  - id: uci-ml
+    name: UCI Machine Learning Repository
+    domain: ml
+    auth: none
+    base_url: https://archive.ics.uci.edu
+    formats: [csv, data]
+    licence: CC BY 4.0 for most
+    verified: 2026-09-11
+    notes: Classic citable datasets. Online Retail II is a genuine sales/marketing dataset.
+
+  - id: owid
+    name: Our World in Data
+    domain: environment
+    auth: none
+    base_url: https://ourworldindata.org
+    formats: [csv]
+    licence: CC BY 4.0
+    verified: 2026-09-11
+    notes: CO2, energy, health, demographics. Clean, documented, long time series.
+
+  - id: zenodo
+    name: Zenodo
+    domain: science
+    auth: none
+    base_url: https://zenodo.org/api
+    example: /records?q=climate&size=5
+    formats: [any]
+    licence: Per-record
+    verified: 2026-09-11
+    notes: DOI-minted research datasets. Cite the DOI in SOURCE.md.
+
+
+# ──────────────────────────────── DENIED ────────────────────────────────
+# Not oversight — these are refused on purpose. check_provenance.py fails any
+# project whose SOURCE.md cites one.
+
+denied:
+  - id: app-store-scraping
+    reason: >
+      Scraping Google Play or the App Store for reviews violates both platforms'
+      Terms of Service. Use a licensed review corpus on Hugging Face, the UCI
+      Online Retail II dataset, or a published academic dataset instead — the
+      analysis is identical and the provenance is defensible.
+
+  - id: yfinance-scraping
+    reason: >
+      yfinance scrapes an undocumented endpoint that Yahoo's ToS prohibits, and it
+      breaks without warning. Use sec-edgar for fundamentals and frankfurter or
+      coingecko for prices.
+
+  - id: google-trends
+    reason: >
+      pytrends is an unofficial scraper of a non-public endpoint, rate-limited and
+      ToS-grey. wikimedia-pageviews answers the same "what are people paying
+      attention to" question with absolute numbers and an official API.
+
+  - id: reddit-social
+    reason: Requires OAuth and its data licence now restricts redistribution and ML training.
+
+  - id: paywalled-or-login
+    reason: Any source behind a login, paywall, or CAPTCHA. Not reproducible by a reviewer.
+
+  - id: personal-data
+    reason: >
+      Scraped social profiles, leaked credential dumps, or any dataset containing
+      identifiable living individuals. (CISA KEV and NVD describe software flaws,
+      not people — those are fine.)
+
+  - id: synthetic-primary
+    reason: >
+      Generated, simulated, or placeholder data as a project's PRIMARY dataset.
+      Permitted only as test fixtures under tests/, where check_provenance.py allows it.

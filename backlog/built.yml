@@ -1,0 +1,4 @@
+# Ledger of shipped projects. Append-only — factory-ship adds one entry per run.
+# factory-pick-idea reads the last 14 days of this to avoid near-duplicate builds.
+
+built: []

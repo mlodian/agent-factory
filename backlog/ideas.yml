@@ -1,0 +1,334 @@
+# Project backlog.
+#
+# Every idea names a `source` from sources/registry.yml. An idea without one is
+# ineligible. Ideas are phrased as questions where possible, because a question
+# the data can answer makes a better project than a topic.
+#
+# status:   ready | blocked | built
+# requires: optional list of secrets the project needs at runtime.
+#           factory-pick-idea skips an idea whose requirements aren't configured.
+#           `anthropic-api-key` = the project itself calls the Claude API, which the
+#           Claude Code OAuth token does NOT cover. Add a repo secret named
+#           FACTORY_ANTHROPIC_API_KEY to unlock these — deliberately NOT named
+#           ANTHROPIC_API_KEY, which would outrank the OAuth token and silently move
+#           the factory's own runs onto per-token API billing.
+#
+# Add ideas with /factory-add-idea "<description>".
+
+ideas:
+
+  # ─────────────────────────────── FINANCE ───────────────────────────────
+
+  - slug: remittances-vs-inflation
+    title: Do remittances into the Philippines rise when inflation does?
+    theme: finance
+    tags: [remittances, inflation, time-series, dashboard]
+    source: worldbank
+    difficulty: easy
+    status: ready
+    note: Personal remittances (BX.TRF.PWKR.CD.DT) vs CPI, 1960 onward, with a lagged-correlation view.
+
+  - slug: revenue-concentration-sec
+    title: How concentrated is revenue growth among the 50 largest US companies?
+    theme: finance
+    tags: [fundamentals, sec, concentration, dashboard]
+    source: sec-edgar
+    difficulty: medium
+    status: ready
+    note: Audited 10-K revenue from XBRL company facts — real figures, no scraping.
+
+  - slug: fx-volatility-regimes
+    title: Detect volatility regimes in USD/PHP since 1999
+    theme: finance
+    tags: [fx, volatility, regime-detection, time-series]
+    source: frankfurter
+    difficulty: medium
+    status: ready
+    note: Rolling volatility plus a simple regime classifier, annotated with the dates that mattered.
+
+  - slug: crypto-correlation-drift
+    title: Has Bitcoin's correlation with the rest of crypto weakened over time?
+    theme: finance
+    tags: [crypto, correlation, rolling-window]
+    source: coingecko
+    difficulty: medium
+    status: ready
+    note: Tight rate limit — fetch once, cache, checksum.
+
+  # ──────────────────────────── CYBERSECURITY ────────────────────────────
+
+  - slug: cvss-vs-exploitation
+    title: Does a high CVSS score actually predict that a CVE gets exploited?
+    theme: cyber
+    tags: [vulnerability, classification, cvss, kev]
+    source: cisa-kev
+    difficulty: medium
+    status: ready
+    note: Join CISA KEV to NVD scores. The answer is "weakly", which makes for a strong talk.
+
+  - slug: epss-vs-cvss-triage
+    title: Would EPSS-first patching beat CVSS-first patching?
+    theme: cyber
+    tags: [vulnerability, prioritisation, epss, simulation-free]
+    source: epss
+    difficulty: medium
+    status: ready
+    note: Back-test both triage orders against the real KEV list. Measured, not modelled.
+
+  - slug: vendor-vuln-velocity
+    title: Which vendors take longest from disclosure to exploitation?
+    theme: cyber
+    tags: [vulnerability, vendors, lead-time, dashboard]
+    source: nvd-cve
+    difficulty: medium
+    status: ready
+    note: NVD rate limit is 5 req/30s without a key — page slowly and cache.
+
+  - slug: cwe-weakness-trends
+    title: Which weakness classes (CWE) are growing fastest in new CVEs?
+    theme: cyber
+    tags: [vulnerability, cwe, trends, dashboard]
+    source: nvd-cve
+    difficulty: easy
+    status: ready
+    note: Year-over-year CWE mix. Memory-safety vs injection is the headline chart.
+
+  # ──────────────────────────────── HEALTH ────────────────────────────────
+
+  - slug: drug-recall-patterns
+    title: What drives FDA drug recalls, and are they getting more frequent?
+    theme: health
+    tags: [fda, recalls, classification, dashboard]
+    source: openfda
+    difficulty: easy
+    status: ready
+    note: openFDA supports server-side &count=, so aggregation is cheap.
+
+  - slug: trials-results-reporting
+    title: What share of completed clinical trials never post results?
+    theme: health
+    tags: [clinical-trials, transparency, sponsors]
+    source: clinicaltrials
+    difficulty: medium
+    status: ready
+    note: Break down by sponsor type and phase. A known, important transparency question.
+
+  - slug: life-expectancy-gaps
+    title: Where has the life-expectancy gap between neighbouring countries widened?
+    theme: health
+    tags: [who, life-expectancy, geography, dashboard]
+    source: who-gho
+    difficulty: easy
+    status: ready
+    note: WHOSIS_000001 via OData $filter. CC BY-NC-SA — attribute on the deck.
+
+  # ───────────────────────────── ENVIRONMENT ─────────────────────────────
+
+  - slug: manila-rainfall-extremes
+    title: Are Metro Manila's heaviest rainfall days getting heavier?
+    theme: environment
+    tags: [weather, extremes, climate, time-series]
+    source: open-meteo
+    difficulty: easy
+    status: ready
+    note: Daily precipitation back to 1940; compare top-1% days by decade.
+
+  - slug: solar-potential-ph-cities
+    title: Rank 20 Philippine cities by rooftop solar potential
+    theme: environment
+    tags: [solar, energy, ranking, dashboard]
+    source: nasa-power
+    difficulty: easy
+    status: ready
+    note: Irradiance from NASA POWER, per city, with seasonal variance.
+
+  - slug: quake-incremental-ingest
+    title: Incremental earthquake ingestion with watermarks and late-arrival handling
+    theme: data-eng
+    tags: [ingestion, incremental, idempotency, pipeline]
+    source: usgs-earthquake
+    difficulty: medium
+    status: ready
+    note: USGS revises events after the fact — a genuine late-arrival problem, not a toy one.
+
+  - slug: co2-per-capita-divergence
+    title: Which countries decoupled GDP growth from CO2 emissions?
+    theme: environment
+    tags: [co2, decoupling, economics]
+    source: owid
+    difficulty: easy
+    status: ready
+    note: OWID CO2 dataset, CC BY. Cross-check GDP against worldbank.
+
+  # ──────────────────────── MARKETING / SALES / TECH ────────────────────────
+
+  - slug: hn-title-engagement
+    title: What makes a Hacker News title get upvoted?
+    theme: marketing
+    tags: [engagement, nlp, headlines, marketing]
+    source: hackernews
+    difficulty: medium
+    status: ready
+    note: Question titles, numbers, "Show HN" — measure each effect on real score data.
+
+  - slug: launch-timing-analysis
+    title: Does posting time affect how far a Show HN launch gets?
+    theme: marketing
+    tags: [launch, timing, engagement, marketing]
+    source: hackernews
+    difficulty: easy
+    status: ready
+    note: Hour-of-week heatmap of Show HN performance. Directly useful to any founder.
+
+  - slug: attention-decay-curves
+    title: How fast does public attention fade after a news spike?
+    theme: marketing
+    tags: [attention, decay, pageviews, time-series]
+    source: wikimedia-pageviews
+    difficulty: easy
+    status: ready
+    note: Fit half-lives to pageview spikes. A free, honest stand-in for Google Trends.
+
+  - slug: retail-cohort-retention
+    title: Customer cohort retention and RFM segmentation on a real retailer
+    theme: marketing
+    tags: [sales, cohorts, rfm, retention, dashboard]
+    source: uci-ml
+    difficulty: easy
+    status: ready
+    note: UCI Online Retail II — real transactions from a UK online retailer. Classic sales analytics.
+
+  - slug: oss-adoption-signals
+    title: Which early GitHub signals predict a repo reaching 1,000 stars?
+    theme: marketing
+    tags: [github, adoption, growth, classification]
+    source: github-api
+    difficulty: medium
+    status: ready
+    note: Use the workflow GITHUB_TOKEN for the 5,000 req/hr limit.
+
+  # ──────────────────────────── CIVIC / CITIES ────────────────────────────
+
+  - slug: nyc-311-response-equity
+    title: Do 311 complaints get resolved at the same speed across NYC boroughs?
+    theme: civic
+    tags: [civic, equity, service-times, dashboard]
+    source: nyc-open-data
+    difficulty: medium
+    status: ready
+    note: Server-side SoQL grouping keeps the download small.
+
+  # ─────────────────────────── SCIENCE / RESEARCH ───────────────────────────
+
+  - slug: research-topic-momentum
+    title: Which AI research topics are accelerating fastest?
+    theme: science
+    tags: [research, trends, bibliometrics]
+    source: openalex
+    difficulty: easy
+    status: ready
+    note: Works per concept per quarter. CC0, no restrictions at all.
+
+  - slug: citation-half-life
+    title: How long do papers in different fields stay cited?
+    theme: science
+    tags: [citations, bibliometrics, decay]
+    source: crossref
+    difficulty: medium
+    status: ready
+    note: Field-by-field citation half-life. Pair with openalex for the citation graph.
+
+  # ─────────────────────────────── DATA ENGINEERING ───────────────────────────────
+  # The lane your agentic-ingestion-orchestrator and agentic-data-pipeline-guardian
+  # repos already established. These extend that work rather than competing with it.
+
+  - slug: schema-drift-detector
+    title: A data-contract validator that detects schema drift and reports a diff
+    theme: data-eng
+    tags: [data-contracts, schema, validation, pipeline]
+    source: nvd-cve
+    difficulty: medium
+    status: ready
+    note: NVD's JSON is large and has evolved — real drift to detect, not a contrived one.
+
+  - slug: idempotent-backfill
+    title: An idempotent backfill harness — re-run any date range, prove zero duplicates
+    theme: data-eng
+    tags: [backfill, idempotency, pipeline, testing]
+    source: open-meteo
+    difficulty: medium
+    status: ready
+    note: The proof is the deliverable — a test that re-runs overlapping ranges and asserts counts.
+
+  - slug: freshness-sla-monitor
+    title: A data-freshness SLA monitor across five public feeds
+    theme: data-eng
+    tags: [observability, freshness, sla, dashboard]
+    source: cisa-kev
+    difficulty: medium
+    status: ready
+    note: Track last-updated vs expected cadence for KEV, EPSS, USGS, openFDA, NVD.
+
+  - slug: sql-lineage-graph
+    title: Column-level lineage extracted from SQL, rendered as a graph — no dbt
+    theme: data-eng
+    tags: [lineage, sql, parsing, visualisation]
+    source: worldbank
+    difficulty: hard
+    status: ready
+    note: Build a small warehouse from worldbank indicators, then trace lineage through its views.
+
+  # ───────────────────────────── AI AGENTS / LLM ─────────────────────────────
+  # These call the Claude API at runtime, so they need ANTHROPIC_API_KEY as a repo
+  # secret. The Claude Code OAuth token does not cover a project's own API calls.
+
+  - slug: cite-or-abstain-qa
+    title: A QA bot that refuses to answer when its retrieved evidence is weak
+    theme: agents
+    tags: [rag, abstention, evaluation, llm]
+    source: openalex
+    difficulty: medium
+    status: ready
+    requires: [anthropic-api-key]
+    note: Measure the abstain rate against answer accuracy. The refusal is the feature.
+
+  - slug: cve-triage-agent
+    title: An agent that triages new CVEs and explains its priority call
+    theme: agents
+    tags: [agent, tool-use, cyber, llm]
+    source: cisa-kev
+    difficulty: medium
+    status: ready
+    requires: [anthropic-api-key]
+    note: Tools over NVD + EPSS + KEV. Evaluate its calls against what actually got exploited.
+
+  - slug: pandas-code-agent
+    title: An agent that answers questions about data by writing and running pandas
+    theme: agents
+    tags: [agent, code-execution, analytics, llm]
+    source: worldbank
+    difficulty: medium
+    status: ready
+    requires: [anthropic-api-key]
+    note: Pairs naturally with your nl-analytics-agent repo. Sandbox the execution.
+
+  - slug: llm-judge-harness
+    title: An LLM-as-judge harness that scores prompt variants with a win-rate plot
+    theme: agents
+    tags: [evaluation, llm-judge, prompts]
+    source: arxiv
+    difficulty: medium
+    status: ready
+    requires: [anthropic-api-key]
+    note: Abstracts as the task corpus. Report judge agreement, not just win rates.
+
+  # ─────────────────────── NO DATASET (provenance-exempt) ───────────────────────
+
+  - slug: turing-machine-simulator
+    title: An interactive Turing machine simulator with step-through tape visualisation
+    theme: web
+    tags: [simulator, visualisation, cs-theory, dashboard]
+    source: none
+    difficulty: easy
+    status: ready
+    note: Your coursework, made presentable. No dataset, so no provenance gate — but no invented results either.

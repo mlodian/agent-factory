@@ -1,0 +1,24 @@
+# Per-run working files written by the agent and the workflow — never committed
+.slug
+PR_BODY.md
+.pr-body.md
+.provenance-report.md
+
+# Rendered binaries live on per-project GitHub Releases, not in git history.
+# deck.html and architecture.svg ARE committed (small, and the primary artifact).
+projects/*/deck/dist/*.pdf
+projects/*/deck/dist/*.pptx
+
+# Showcase site is built by the publish workflow
+site/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Local secrets and OS noise
+.env
+.DS_Store
