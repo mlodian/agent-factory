@@ -15,3 +15,9 @@ built:
       20,149 CVEs published in 2021, 214 later confirmed exploited (1.06%).
       CVSS base score ranks at AUC 0.716, but "patch everything >= 7.0" queues
       55.7% of the year and 98.34% of that queue was never exploited.
+  - slug: 2026-09-11-manila-rainfall-extremes
+    date: 2026-09-11
+    theme: environment
+    tags: [weather, extremes, climate, time-series]
+    source: open-meteo
+    status: passed

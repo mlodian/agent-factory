@@ -134,7 +134,8 @@ ideas:
     tags: [weather, extremes, climate, time-series]
     source: open-meteo
     difficulty: easy
-    status: ready
+    status: built
+    built_on: 2026-09-11
     note: Daily precipitation back to 1940; compare top-1% days by decade.
 
   - slug: solar-potential-ph-cities

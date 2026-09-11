@@ -1,0 +1,22 @@
+{
+  "slug": "2026-09-11-manila-rainfall-extremes",
+  "title": "Are Metro Manila's heaviest rainfall days getting heavier?",
+  "pitch": "86 years of daily rainfall over Metro Manila, tested for intensifying extremes — the answer is no, and the trend that is significant is the one to distrust.",
+  "date": "2026-09-11",
+  "theme": "environment",
+  "tags": ["weather", "extremes", "climate", "time-series"],
+  "source": {
+    "registry_id": "open-meteo",
+    "name": "Open-Meteo Historical Weather API (ERA5)",
+    "records": 31412
+  },
+  "status": "passed",
+  "featured": false,
+  "stack": ["python"],
+  "headline": "Total annual rainfall is rising (p = 0.0001) but the wettest day of the year shows no trend (p = 0.4379) — Manila rains more often, not harder",
+  "links": {
+    "readme": "README.md",
+    "deck": "deck/dist/deck.html",
+    "demo": "DEMO.md"
+  }
+}

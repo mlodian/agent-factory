@@ -1,0 +1,7 @@
+flowchart LR
+    A["Open-Meteo archive API<br/>ERA5 · 14.6N 120.98E"] --> B["fetch_data.py<br/>validate · 2 checksums"]
+    B --> C["raw JSON<br/>31,412 daily records"]
+    C --> D["load.py<br/>drop nulls · complete years"]
+    D --> E["extremes.py<br/>R99p · Rx1day · PRCPTOT"]
+    E --> F["trend.py<br/>Mann-Kendall · Theil-Sen"]
+    F --> G["report<br/>4 verdicts + caveats"]
