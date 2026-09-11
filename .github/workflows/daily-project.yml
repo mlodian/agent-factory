@@ -20,7 +20,6 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
-  id-token: write
 
 jobs:
   build:
@@ -54,6 +53,10 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Use the workflow's own token instead of the Claude GitHub App. The agent
+          # only writes files; the PR is opened by a later step, so the App's broad
+          # permissions (workflows, webhooks, issues…) would be granted for nothing.
+          github_token: ${{ github.token }}
           # The unattended agent's permission rules. Kept out of .claude/settings.json
           # so they bind this run only, not a human's interactive sessions in the repo.
           settings: .github/agent-settings.json
