@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Edit(**/projects/**)",
+      "Edit(**/.github/**)",
+      "Edit(**/.claude/**)",
+      "Edit(**/scripts/**)",
+      "Edit(**/sources/**)",
+      "Edit(**/backlog/**)",
+      "Edit(**/templates/**)",
+      "Edit(**/CLAUDE.md)",
+      "Edit(**/README.md)",
+      "Edit(~/.claude/**)",
+      "Read(.env)",
+      "Read(//**/.env)"
+    ]
+  }
+}

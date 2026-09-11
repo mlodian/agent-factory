@@ -27,7 +27,28 @@ checksum. Nothing merges on its own.
                  → pull request: "verified", or a draft labelled "needs-work"
 on merge       publish.yml → PDF/PPTX to a GitHub Release, rebuild the showcase site
 Mondays        check-sources.yml → probe every data source, open an issue if one is down
+Saturdays      weekly-review.yml → a read-only reviewer opens a review issue (see below)
 ```
+
+## The weekly review
+
+Every Saturday at 09:00 Manila, a reviewer agent reads the week's projects and the
+factory's health, then opens an issue titled **"Weekly review — week of …"**. GitHub emails
+it to you.
+
+1. **Read it.** Each project gets a verdict and a reason: *Feature*, *Keep*, *Fix before
+   featuring*, or *Retire*. The reviewer holds a hard bar and checks methods, not just
+   numbers. After that come factory health (failed runs, source outages, stale PRs,
+   backlog depth) and up to three suggested ideas.
+2. **Tick** the recommendations you agree with, then comment **`/apply`**.
+3. `/apply` validates the ticked items and opens a PR that changes only `featured` / `retired`
+   flags and the backlog. It reports anything it had to skip, such as "merge its PR first".
+   **Merge the PR** to publish.
+
+Nothing is featured unless you tick it *and* merge it. The reviewer has no shell, no web
+access, and no way to commit. Only the repo owner's `/apply` comment triggers changes.
+Run a review on demand from **Actions → Weekly review → Run workflow**, or locally with
+`/factory-review`.
 
 ## Why you can trust the output
 
@@ -95,7 +116,8 @@ Open Claude Code in this directory:
 |---|---|
 | `/factory-run [slug]` | The whole pipeline, locally |
 | `/factory-add-idea "…"` | Add an idea, checked against the source registry |
-| `/factory-promote review` | Weekly curation: which recent projects deserve `featured` |
+| `/factory-review` | The weekly review, run locally (writes `.review.md`) |
+| `/factory-promote review` | Ad-hoc curation: which recent projects deserve `featured` |
 | `/factory-sync-profile` | Update the "Recent builds" section of your GitHub profile README |
 | `/factory-rehearse [slug]` | Practise a demo. It asks the questions an audience would. |
 
@@ -115,8 +137,8 @@ backlog/ideas.yml      32 ideas across finance, cyber, health, environment,
                        marketing, civic, science, data engineering, agents
 backlog/built.yml      append-only ledger — stops repeat builds
 .claude/skills/        factory-* — the procedures
-.claude/agents/        idea-scout, builder, verifier, doc-writer, deck-designer
-.github/               workflows + agent-settings.json (the CI agent's permission rules)
+.claude/agents/        idea-scout, builder, verifier, doc-writer, deck-designer, reviewer
+.github/               workflows + agent-settings.json / reviewer-settings.json (CI permission rules)
 scripts/               deterministic checks the agent can run but not edit
 templates/             README, DEMO, and deck skeletons + Marp theme
 projects/<date>-<slug>/  one directory per shipped project

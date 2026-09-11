@@ -29,6 +29,8 @@ def load_projects() -> list[dict]:
         except json.JSONDecodeError as exc:
             print(f"skipping {path}: {exc}")
             continue
+        if data.get("retired"):
+            continue  # retired via the weekly review; stays in the repo, off the showcase
         data.setdefault("slug", path.parent.name)
         data["_dir"] = path.parent
         projects.append(data)
@@ -134,7 +136,7 @@ def page(projects: list[dict], released: set[str]) -> str:
     <p>One small project a day, built by a Claude Code pipeline on real public data,
        verified independently, and reviewed by a human before it lands.</p>
   </header>
-  <p class="stats">{len(projects)} projects · {passed} verified · {sum(1 for p in projects if p.get('featured'))} featured</p>
+  <p class="stats">{len(projects)} project{'s' * (len(projects) != 1)} · {passed} verified · {sum(1 for p in projects if p.get('featured'))} featured</p>
   <div class="filters"><button data-filter="" aria-pressed="true">all</button>{filters}</div>
   <section class="grid">{cards}</section>
   <footer>Built {built} · <a href="{REPO}">source</a> · every dataset is cited, with its checksum, in the project's <code>data/SOURCE.md</code></footer>
