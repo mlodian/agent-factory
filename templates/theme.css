@@ -15,6 +15,9 @@ section {
   font-size: 30px;
   padding: 64px 80px;
   line-height: 1.4;
+  /* Pin content to the top. Marp's default centres it vertically, so a sparse
+     slide's heading sits mid-page and headings jump between slides. */
+  justify-content: flex-start;
 }
 
 h1, h2 {

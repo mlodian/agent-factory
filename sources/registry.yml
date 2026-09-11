@@ -83,7 +83,7 @@ sources:
     domain: cyber
     auth: none                 # optional free key raises the rate limit
     base_url: https://services.nvd.nist.gov/rest/json/cves/2.0
-    example: ?resultsPerPage=2000&pubStartDate=2026-01-01T00:00:00.000&pubEndDate=2026-04-30T23:59:59.999
+    example: ?resultsPerPage=500&pubStartDate=2026-01-01T00:00:00.000&pubEndDate=2026-04-30T23:59:59.999
     formats: [json]
     licence: US public domain
     verified: 2026-09-11
@@ -92,7 +92,12 @@ sources:
       389,907 CVEs with CVSS vectors, CWE mappings, CPE configs, references.
       Rich enough for severity modelling, vendor analysis, and disclosure-lag studies.
       pubStartDate REQUIRES pubEndDate, max 120-day window — a start date alone
-      returns 404. Page through longer periods in 120-day chunks.
+      returns 404. Page through longer periods in 120-day chunks. Use
+      resultsPerPage=500, not the 2000 maximum: measured on 2026-09-11, a
+      500-record page returns in ~1 s and a 2000-record page in ~119 s (~25× slower
+      per record). A full year is ~43 requests; space them 6.5 s apart without a key.
+      Full records are ~90 MB/year, mostly CPE strings — save a field projection
+      and record every query URL in the file (see the first shipped project).
 
   - id: cisa-kev
     name: CISA Known Exploited Vulnerabilities catalog

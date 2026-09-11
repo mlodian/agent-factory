@@ -33,7 +33,10 @@ echo "==> rendering deck.html";  "${marp[@]}" "$deck/deck.md" --html -o "$deck/d
 echo "==> rendering deck.pdf";   "${marp[@]}" "$deck/deck.md" --pdf  -o "$deck/dist/deck.pdf"
 echo "==> rendering deck.pptx";  "${marp[@]}" "$deck/deck.md" --pptx -o "$deck/dist/deck.pptx"
 
-# The HTML deck references the SVG by relative path; keep a copy beside it.
-[[ -f "$deck/architecture.svg" ]] && cp "$deck/architecture.svg" "$deck/dist/"
+# The HTML deck references images by relative path, so every image beside
+# deck.md must also sit beside deck.html, or it breaks in dist/ and on Pages.
+# (PDF/PPTX embed images at render time and aren't affected.)
+find "$deck" -maxdepth 1 -type f \( -iname '*.svg' -o -iname '*.png' -o -iname '*.jpg' \
+     -o -iname '*.jpeg' -o -iname '*.gif' -o -iname '*.webp' \) -exec cp {} "$deck/dist/" \;
 
 ls -la "$deck/dist"
