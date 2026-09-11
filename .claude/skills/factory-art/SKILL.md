@@ -9,7 +9,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash(python3 scripts/check_palette
 
 ## Recent identities to stay clear of
 
-!`for f in $(ls -1d projects/*/deck/identity.json 2>/dev/null | sort -r | head -5); do echo "--- $f"; python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(d.get('name'),'|',d.get('mood'),'|',d['fonts'],'| bg',d['colors']['background'],'accent',d['colors']['accent'])" "$f"; done; true`
+!`python3 scripts/recent_identities.py`
 
 ## Instructions
 

@@ -56,6 +56,7 @@ jobs:
 
       # ── The agents ────────────────────────────────────────────────────────
       - name: Build today's project
+        id: agent
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -72,6 +73,16 @@ jobs:
             --permission-mode acceptEdits
             --permission-prompts none
             --max-turns 250
+
+      # On failure, keep the agent transcript briefly for diagnosis (public repo:
+      # failures only, 3 days).
+      - name: Keep agent transcript
+        if: failure() && steps.agent.outputs.execution_file != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: transcript-${{ github.run_id }}
+          path: ${{ steps.agent.outputs.execution_file }}
+          retention-days: 3
 
       # ── Everything below is deterministic. None of it trusts the agents. ────
       - name: Read and validate slug
