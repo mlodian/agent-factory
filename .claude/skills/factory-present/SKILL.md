@@ -10,7 +10,9 @@ Slug: **$ARGUMENTS** — if empty, read it from `.slug`. If a slug was given, wr
 `.slug` first (no trailing newline), because every team skill reads it from there.
 
 The project is built and verified. This turns it into something worth presenting. Run these
-in order, since each one builds on the last:
+in order, since each one builds on the last. Invoke each step with the Skill tool, which
+waits for it to finish. If a skill is ever unavailable, call its agent directly with the
+Agent tool and `run_in_background: false`. Never background a step and then poll for it.
 
 1. **Story:** `/factory-story` → `deck/STORY.md` (+ `data/CONTEXT.md` if it cites outside facts)
 2. **Identity:** `/factory-art` → `deck/identity.json`, `deck/theme.css`

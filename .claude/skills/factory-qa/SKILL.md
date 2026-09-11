@@ -9,8 +9,11 @@ Project: `projects/$(cat .slug)/`. QA round: **$ARGUMENTS** (default 1).
 
 ### 1. Run the three reviewers in parallel
 
-Launch all three with the Agent tool **in a single message** so they run concurrently.
-Give each the slug and ask for its findings as its final reply:
+Launch all three with the Agent tool **in a single message**, each with
+**`run_in_background: false`**. Foreground calls in the same message still run
+concurrently, and you get all three reports back at once without polling. Background
+agents make you wait and poll, which burns the turn budget; that's how an earlier run
+hit its turn cap. Give each the slug and ask for its findings as its final reply:
 
 | Agent | Ask it to |
 |---|---|

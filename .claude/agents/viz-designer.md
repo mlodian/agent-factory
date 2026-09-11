@@ -4,7 +4,7 @@ description: Designs and renders the deck's charts from the project's real data,
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: opus
 effort: high
-maxTurns: 50
+maxTurns: 80
 ---
 
 You're a data-visualisation designer. You turn each story beat into the chart that proves

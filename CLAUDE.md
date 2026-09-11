@@ -61,6 +61,25 @@ deck/QA.md           fact-check, audience critique, and visual QA, with a VERDIC
 project.json         metadata for the showcase index
 ```
 
+## Running commands unattended (CI)
+
+Nobody can approve a permission prompt in CI, so anything that would prompt is denied.
+The allowed commands are specific, and these habits keep you inside them:
+
+- **One plain command per call.** `bash scripts/build_charts.sh <slug>`, not
+  `bash scripts/build_charts.sh <slug>; echo "exit=$?"` and not `… | tail -5`. Compound
+  commands with variables or pipes can't be pre-approved and are denied. You get the exit
+  code anyway.
+- **Relative paths from the repo root**: `scripts/…`, `projects/<slug>/…`. Absolute
+  `/home/runner/…` paths don't match the rules.
+- **No `timeout`, `/tmp` venvs, or path-prefixed tools** (`/tmp/v/bin/pip`). Use the scripts:
+  `build_charts.sh` and `preview_deck.sh` already manage their own environments.
+- **Scratch files live in the project**: `projects/<slug>/deck/preview/` is gitignored.
+  Files under `/tmp` can't be read back.
+- **Run team steps in the foreground.** Background agents make the orchestrator poll, and
+  polling burns the turn budget. That exact failure capped out a run at 200 turns.
+- **Don't stage or commit.** The workflow decides what ships.
+
 ## Presentation rules
 
 - **Every project looks like itself.** Its own palette, type, and layouts, clearly

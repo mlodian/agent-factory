@@ -17,14 +17,14 @@
       "Bash(sudo *)"
     ],
     "allow": [
+      "Skill",
       "Bash(python3 *)",
       "Bash(python *)",
       "Bash(pip install *)",
       "Bash(pip3 install *)",
       "Bash(pytest *)",
       "Bash(ruff *)",
-      "Bash(npx --yes @marp-team/marp-cli *)",
-      "Bash(git add *)",
+      "Bash(npx --yes @marp-team/marp-cli@*)",
       "Bash(git status *)",
       "Bash(git diff *)",
       "Bash(mkdir *)",

@@ -72,7 +72,7 @@ jobs:
             --model claude-opus-5
             --permission-mode acceptEdits
             --permission-prompts none
-            --max-turns 250
+            --max-turns 300
 
       # On failure, keep the agent transcript briefly for diagnosis (public repo:
       # failures only, 3 days).
@@ -144,6 +144,12 @@ jobs:
             echo
             echo "📎 PDF and PPTX: download the \`deck-$SLUG\` artifact from [this run]($RUN_URL)."
           } > .pr-body.md
+
+      # Unstage everything the agents may have staged, so only add-paths below can
+      # reach the commit. create-pull-request commits whatever is already staged, so
+      # without this a file staged outside projects/ would ride along.
+      - name: Unstage agent changes
+        run: git reset -q
 
       - name: Open pull request
         if: steps.slug.outputs.slug != ''
