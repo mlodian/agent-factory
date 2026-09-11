@@ -1,4 +1,10 @@
 # Ledger of shipped projects. Append-only — factory-ship adds one entry per run.
 # factory-pick-idea reads the last 14 days of this to avoid near-duplicate builds.
 
-built: []
+built:
+  - slug: 2026-09-11-manila-rainfall-extremes
+    date: 2026-09-11
+    theme: environment
+    tags: [weather, extremes, climate, time-series]
+    source: open-meteo
+    status: passed

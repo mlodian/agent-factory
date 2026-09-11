@@ -1,0 +1,7 @@
+# The analysis itself imports nothing outside the standard library: json,
+# math, statistics, dataclasses, collections and datetime cover all of it.
+# Mann-Kendall and Theil-Sen are ~40 lines here, which is a smaller cost than
+# taking a scipy dependency for two functions.
+#
+# pytest is required even so — verify.sh runs in an empty virtualenv.
+pytest==8.3.3
