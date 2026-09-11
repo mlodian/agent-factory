@@ -26,8 +26,11 @@ if [[ -f "$deck/architecture.mmd" ]]; then
     -b transparent -p "$root/scripts/puppeteer.json"
 fi
 
-marp=(npx --yes "@marp-team/marp-cli@$MARP_VERSION"
-      --theme-set "$root/templates/theme.css" --allow-local-files)
+# Each project has its own theme (deck/theme.css, from the art director). The
+# shared template stays in the set as a fallback for older decks.
+themes=(--theme-set "$root/templates/theme.css")
+[[ -f "$deck/theme.css" ]] && themes+=("$deck/theme.css")
+marp=(npx --yes "@marp-team/marp-cli@$MARP_VERSION" "${themes[@]}" --allow-local-files)
 
 echo "==> rendering deck.html";  "${marp[@]}" "$deck/deck.md" --html -o "$deck/dist/deck.html"
 echo "==> rendering deck.pdf";   "${marp[@]}" "$deck/deck.md" --pdf  -o "$deck/dist/deck.pdf"
@@ -38,5 +41,9 @@ echo "==> rendering deck.pptx";  "${marp[@]}" "$deck/deck.md" --pptx -o "$deck/d
 # (PDF/PPTX embed images at render time and aren't affected.)
 find "$deck" -maxdepth 1 -type f \( -iname '*.svg' -o -iname '*.png' -o -iname '*.jpg' \
      -o -iname '*.jpeg' -o -iname '*.gif' -o -iname '*.webp' \) -exec cp {} "$deck/dist/" \;
+if [[ -d "$deck/charts" ]]; then
+  mkdir -p "$deck/dist/charts"
+  find "$deck/charts" -maxdepth 1 -type f \( -iname '*.svg' -o -iname '*.png' \) -exec cp {} "$deck/dist/charts/" \;
+fi
 
 ls -la "$deck/dist"

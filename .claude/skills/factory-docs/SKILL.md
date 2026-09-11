@@ -14,22 +14,29 @@ The project exists on disk and has already been verified. Read it, then document
 You have **no shell**. That is deliberate: it means you can only describe what you can
 actually read, which is the whole point of this phase.
 
-Read first, in this order: `SPEC.md`, `VERIFY.md`, `data/SOURCE.md`, `src/`, `tests/`,
-`verify.sh`. Then write three files from `templates/`.
+Read first, in this order: `deck/STORY.md` (the insight and arc the presentation team
+chose), `SPEC.md`, `VERIFY.md`, `deck/charts/FIGURES.md`, `data/SOURCE.md`,
+`data/CONTEXT.md` if present, `src/`, `tests/`, `verify.sh`. Then write three files from
+`templates/`.
 
 ### `README.md`
 
-Lead with what it does and how to run it. Structure:
+Lead with the insight, then how to run it. Structure:
 
-1. **One-line description**, then one paragraph of context — why this is interesting.
-2. **Quickstart** — the exact commands, copied verbatim from `verify.sh`. If a command
+1. **The one insight** from `STORY.md` as the opening line, then a short paragraph on why it
+   matters and to whom.
+2. **The hero chart**: embed the chart that proves the insight, e.g.
+   `![<the finding>](deck/charts/01-….svg)`. A reader should get the point before scrolling.
+3. **Quickstart**: the exact commands, copied verbatim from `verify.sh`. If a command
    isn't in `verify.sh` or the source, don't invent it.
-3. **What it found** — the results. Every number comes from `VERIFY.md`'s headline
-   section. No number there means no number here.
-4. **Data** — source name, link, licence, record count, and the one-line fetch command,
+4. **What it found**: the results, following the story's beats. Every number comes from
+   `VERIFY.md`'s printed output, `deck/charts/FIGURES.md`, or a cited line of
+   `data/CONTEXT.md`. If it's in none of those, it doesn't go in the README.
+5. **Data**: source name, link, licence, record count, and the one-line fetch command,
    all from `data/SOURCE.md`. Credit the source properly; several licences require it.
-5. **How it works** — three or four sentences, then link to `ARCHITECTURE.md`.
-6. **Limitations** — required, and specific.
+6. **How it works**: three or four sentences, then link to `ARCHITECTURE.md`.
+7. **Limitations**: required, and specific. Include the caveats `STORY.md` says must be
+   visible.
 
 ### `ARCHITECTURE.md`
 

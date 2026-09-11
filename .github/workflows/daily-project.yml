@@ -24,7 +24,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     env:
       # Optional. Sent in the User-Agent to SEC/OpenAlex/Crossref. Set under
       # Settings → Secrets and variables → Actions → Variables.
@@ -48,7 +48,13 @@ jobs:
       - name: Install factory tooling
         run: pip install -r scripts/requirements.txt
 
-      # ── The agent ─────────────────────────────────────────────────────────
+      # Chrome (used by Marp and mermaid-cli) can't start its sandbox under the
+      # AppArmor defaults on ubuntu-24.04 runners. Needed during the agent step
+      # too: the visual-QA agent renders every slide to PNG and inspects it.
+      - name: Allow Chrome sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      # ── The agents ────────────────────────────────────────────────────────
       - name: Build today's project
         uses: anthropics/claude-code-action@v1
         with:
@@ -65,9 +71,9 @@ jobs:
             --model claude-opus-5
             --permission-mode acceptEdits
             --permission-prompts none
-            --max-turns 150
+            --max-turns 250
 
-      # ── Everything below is deterministic. None of it trusts the agent. ─────
+      # ── Everything below is deterministic. None of it trusts the agents. ────
       - name: Read and validate slug
         id: slug
         run: |
@@ -83,38 +89,18 @@ jobs:
           fi
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
 
-      - name: Independent verification
-        id: verify
+      - name: Gates
+        id: gate
         if: steps.slug.outputs.slug != ''
-        continue-on-error: true
         env:
           SLUG: ${{ steps.slug.outputs.slug }}
-        run: bash scripts/verify.sh "$SLUG"
-
-      - name: Provenance gate
-        id: provenance
-        if: steps.slug.outputs.slug != ''
-        continue-on-error: true
-        env:
-          SLUG: ${{ steps.slug.outputs.slug }}
-        run: python3 scripts/check_provenance.py "$SLUG"
-
-      # Chrome (used by Marp and mermaid-cli) can't start its sandbox under the
-      # AppArmor defaults on ubuntu-24.04 runners.
-      - name: Allow Chrome sandbox
-        if: steps.slug.outputs.slug != ''
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-
-      - name: Render deck
-        id: deck
-        if: steps.slug.outputs.slug != ''
-        continue-on-error: true
-        env:
-          SLUG: ${{ steps.slug.outputs.slug }}
-        run: bash scripts/render_deck.sh "$SLUG"
+        run: |
+          bash scripts/gate.sh "$SLUG"
+          cat .gate-results >> "$GITHUB_OUTPUT"
+          if grep -q '=failure' .gate-results; then echo "ok=false" >> "$GITHUB_OUTPUT"; else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
 
       - name: Upload deck for review
-        if: steps.deck.outcome == 'success'
+        if: steps.gate.outputs.render == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: deck-${{ steps.slug.outputs.slug }}
@@ -131,33 +117,21 @@ jobs:
         if: steps.slug.outputs.slug != ''
         env:
           SLUG: ${{ steps.slug.outputs.slug }}
-          VERIFY: ${{ steps.verify.outcome }}
-          PROVENANCE: ${{ steps.provenance.outcome }}
-          DECK: ${{ steps.deck.outcome }}
+          OK: ${{ steps.gate.outputs.ok }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          mark() { [ "$1" = success ] && echo "✅ passed" || echo "❌ $1"; }
           {
-            if [ "$VERIFY" != success ] || [ "$PROVENANCE" != success ]; then
+            if [ "$OK" != true ]; then
               echo "> [!WARNING]"
-              echo "> The workflow's independent checks did not pass. This PR is a draft for review, not for merge."
+              echo "> Not every independent check passed. This PR is a draft for review, not for merge."
               echo
             fi
             cat PR_BODY.md 2>/dev/null || echo "## $SLUG"
             echo
             echo "---"
-            echo "### Independent checks"
-            echo "Run by the workflow after the agent finished — not self-reported."
-            echo
-            echo "| Check | Result |"
-            echo "|---|---|"
-            echo "| \`verify.sh\` in a clean venv | $(mark "$VERIFY") |"
-            echo "| Provenance gate | $(mark "$PROVENANCE") |"
-            echo "| Deck render | $(mark "$DECK") |"
+            cat .pr-checks.md
             echo
             echo "📎 PDF and PPTX: download the \`deck-$SLUG\` artifact from [this run]($RUN_URL)."
-            echo
-            cat .provenance-report.md 2>/dev/null
           } > .pr-body.md
 
       - name: Open pull request
@@ -173,5 +147,5 @@ jobs:
           add-paths: |
             projects/${{ steps.slug.outputs.slug }}/**
             backlog/*.yml
-          draft: ${{ steps.verify.outcome != 'success' || steps.provenance.outcome != 'success' }}
-          labels: ${{ (steps.verify.outcome == 'success' && steps.provenance.outcome == 'success') && 'verified' || 'needs-work' }}
+          draft: ${{ steps.gate.outputs.ok != 'true' }}
+          labels: ${{ steps.gate.outputs.ok == 'true' && 'verified' || 'needs-work' }}

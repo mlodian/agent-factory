@@ -1,8 +1,21 @@
-# Per-run working files written by the agent and the workflow — never committed
+# Per-run working files written by the agents and the workflows — never committed
 .slug
 PR_BODY.md
 .pr-body.md
+.pr-checks.md
+.gate-results
+.verify-output.txt
 .provenance-report.md
+.deck-report.md
+.review.md
+.review-context.md
+.issue-body.md
+.apply-summary.md
+.apply-pr-body.md
+.apply-comment.md
+
+# Slide previews rendered for visual QA
+projects/*/deck/preview/
 
 # Rendered binaries live on per-project GitHub Releases, not in git history.
 # deck.html and architecture.svg ARE committed (small, and the primary artifact).

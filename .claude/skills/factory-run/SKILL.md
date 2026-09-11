@@ -14,7 +14,7 @@ argument-hint: "[optional-idea-slug]"
 You are running unattended. Nobody will answer a question, so decide and proceed.
 Requested idea slug (may be empty — then choose from the backlog): **$ARGUMENTS**
 
-Run these phases **in order**. Each is a gate: if one fails, stop and report. Do not
+Run these five phases **in order**. Each is a gate: if one fails, stop and report. Do not
 skip ahead, and do not start writing documentation for code that does not exist yet.
 
 ### 1. Pick
@@ -44,18 +44,20 @@ honest `STATUS: FAILED` header and the actual error. The workflow will open a dr
 labelled `needs-work`. Never paper over a failure; a documented failure is useful, a
 disguised one is not.
 
-### 4. Document
-Invoke `/factory-docs`.
+### 4. Present
+Invoke `/factory-present`.
 
-Produces `README.md`, `ARCHITECTURE.md`, `DEMO.md`. Every number traces to `VERIFY.md`.
+The presentation team turns the verified project into something worth presenting: a data
+story, the project's own visual identity, charts rendered from the real data, a
+story-led README, a deck with no fixed template, and a QA loop (fact-checker, audience
+critic, visual QA) with up to two revision rounds. It writes `deck/QA.md` with an honest
+verdict. The workflow rebuilds the charts and renders the deck. You don't run Marp for the
+final output, though the team previews slides while it works.
 
-### 5. Deck
-Invoke `/factory-deck`.
+If QA still fails after the revision rounds, continue to Ship anyway. The PR is opened as
+a draft labelled `needs-work`, with the QA findings in the body.
 
-Produces `deck/deck.md` — 10 Marp slides with speaker notes. The workflow renders it to
-HTML, PDF, and PPTX; you do not run Marp yourself.
-
-### 6. Ship
+### 5. Ship
 Invoke `/factory-ship`.
 
 Produces `project.json`, appends to `backlog/built.yml`, sets the used idea's

@@ -14,16 +14,17 @@ checksum. Nothing merges on its own.
 
 ```
 05:00 Manila   GitHub Actions cron → claude-code-action → /factory-run
-                 1  factory-pick-idea   idea-scout     choose an idea, confirm its source is live
-                 2  factory-build       builder        fetch real data, write code + tests
-                 3  factory-verify      verifier       clean-venv run, write VERIFY.md
-                 4  factory-docs        doc-writer     README, ARCHITECTURE, DEMO (no shell)
-                 5  factory-deck        deck-designer  10-slide Marp deck (no shell)
-                 6  factory-ship        —              metadata, ledger, PR body
-               then the workflow, which trusts none of the above:
-                 scripts/verify.sh          re-runs the project in a fresh venv
-                 scripts/check_provenance.py checks data, checksums, and claims
-                 scripts/render_deck.sh      Marp → HTML / PDF / PPTX
+                 1  factory-pick-idea   idea-scout        choose an idea, confirm its source is live
+                 2  factory-build       builder           fetch real data, write code + tests
+                 3  factory-verify      verifier          clean-venv run, write VERIFY.md
+                 4  factory-present     the presentation team (below)
+                 5  factory-ship        —                 metadata, ledger, PR body
+               then scripts/gate.sh, which trusts none of the above:
+                 charts      rebuilt from the committed chart script + data
+                 verify      verify.sh in a fresh venv, output captured
+                 provenance  data, checksums, fabrication, every slide number vs that log
+                 deck        own identity, ≥ 2 real charts, no walls of text, QA signed off
+                 render      Marp → HTML / PDF / PPTX
                  → pull request: "verified", or a draft labelled "needs-work"
 on merge       publish.yml → PDF/PPTX to a GitHub Release, rebuild the showcase site
 Mondays        check-sources.yml → probe every data source, open an issue if one is down
@@ -49,6 +50,22 @@ Nothing is featured unless you tick it *and* merge it. The reviewer has no shell
 access, and no way to commit. Only the repo owner's `/apply` comment triggers changes.
 Run a review on demand from **Actions → Weekly review → Run workflow**, or locally with
 `/factory-review`.
+
+## The presentation team
+
+Each project gets a presentation built for its own finding, not poured into a template.
+
+| Step | Agent | Produces |
+|---|---|---|
+| Story | **story-strategist** | `deck/STORY.md`: audience, the tension, one insight, an arc chosen for this finding, evidence for every beat |
+| Identity | **art-director** | `deck/identity.json` + `deck/theme.css`: its own palette, type pairing, and layouts, validated for contrast and colorblind separation, and distinct from recent decks |
+| Charts | **viz-designer** | `deck/charts/make_charts.py`: one chart per beat, rendered from the real data with the project's identity via `scripts/chartkit.py` |
+| README | **doc-writer** | Leads with the insight and the hero chart |
+| Deck | **slide-composer** | 8–14 story-driven slides with varied layouts and speaker notes |
+| QA | **fact-checker** · **audience-critic** · **visual-qa**, in parallel | `deck/QA.md`: every claim traced, the deck scored as its audience would see it, and every slide rendered and inspected. Failures loop back for up to two revision rounds. |
+
+To give an existing project a new presentation: **Actions → Present project → Run workflow**,
+then enter its slug. It opens a PR with the new deck.
 
 ## Why you can trust the output
 
@@ -116,6 +133,7 @@ Open Claude Code in this directory:
 |---|---|
 | `/factory-run [slug]` | The whole pipeline, locally |
 | `/factory-add-idea "…"` | Add an idea, checked against the source registry |
+| `/factory-present [slug]` | Run the presentation team on a built project |
 | `/factory-review` | The weekly review, run locally (writes `.review.md`) |
 | `/factory-promote review` | Ad-hoc curation: which recent projects deserve `featured` |
 | `/factory-sync-profile` | Update the "Recent builds" section of your GitHub profile README |
@@ -137,7 +155,9 @@ backlog/ideas.yml      32 ideas across finance, cyber, health, environment,
                        marketing, civic, science, data engineering, agents
 backlog/built.yml      append-only ledger — stops repeat builds
 .claude/skills/        factory-* — the procedures
-.claude/agents/        idea-scout, builder, verifier, doc-writer, deck-designer, reviewer
+.claude/agents/        idea-scout, builder, verifier, doc-writer, reviewer, and the
+                       presentation team: story-strategist, art-director, viz-designer,
+                       slide-composer, fact-checker, audience-critic, visual-qa
 .github/               workflows + agent-settings.json / reviewer-settings.json (CI permission rules)
 scripts/               deterministic checks the agent can run but not edit
 templates/             README, DEMO, and deck skeletons + Marp theme

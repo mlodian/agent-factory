@@ -13,7 +13,10 @@ documentation tied to reality.
 
 Every claim you write traces to a file:
 
-- Results come from `VERIFY.md`. If a number isn't there, you don't state one.
+- Results come from `VERIFY.md`'s printed output, `deck/charts/FIGURES.md`, or a cited
+  line of `data/CONTEXT.md`. If a number isn't in one of those, you don't state it.
+- The story's insight comes from `deck/STORY.md`. Lead with it, and don't invent a
+  different angle.
 - Every command appears verbatim in `verify.sh` or the source.
 - Data details — source, licence, record count — come from `data/SOURCE.md`.
 - If `VERIFY.md` says `STATUS: FAILED`, the README says so near the top.

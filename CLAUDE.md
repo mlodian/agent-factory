@@ -48,12 +48,30 @@ src/                 the implementation
 tests/               pytest; the only place fabricated fixtures are allowed
 verify.sh            one command, exit 0 = the project works
 VERIFY.md            what verification actually printed, including timings and metrics
-README.md            what it does, how to run it, what it found, what it can't do
+data/CONTEXT.md      optional: outside facts the story cites, each with a source URL
+README.md            leads with the insight and hero chart; how to run it; what it can't do
 ARCHITECTURE.md      how it works and why it's built that way
 DEMO.md              a 5-minute script with timings and exact commands to type
-deck/deck.md         10-slide Marp source with speaker notes
+deck/STORY.md        the data story: audience, tension, one insight, arc, evidence per beat
+deck/identity.json   this project's own palette, fonts, and layouts (validated)
+deck/theme.css       this project's own Marp theme, generated from identity.json
+deck/charts/         make_charts.py + requirements.txt → SVG charts and FIGURES.md
+deck/deck.md         story-driven Marp deck, 8–14 slides, speaker notes on each
+deck/QA.md           fact-check, audience critique, and visual QA, with a VERDICT
 project.json         metadata for the showcase index
 ```
+
+## Presentation rules
+
+- **Every project looks like itself.** Its own palette, type, and layouts, clearly
+  different from recent projects. No shared template.
+- **Every number on a slide traces** to what `verify.sh` printed, to `deck/charts/FIGURES.md`
+  (computed by the committed chart script), or to a cited line in `data/CONTEXT.md`. The
+  workflow checks every slide against its own verification log.
+- **Charts are rebuilt by the workflow** from `deck/charts/make_charts.py` and the committed
+  data. A chart can't show anything the data doesn't.
+- **Lead with the insight.** A deck that reads like a results table has failed, even if
+  every number in it is right.
 
 ## Style
 

@@ -1,55 +1,74 @@
 ---
 name: factory-deck
-description: Write the 10-slide Marp presentation with speaker notes for the day's project
+description: Compose the story-driven Marp deck from STORY.md, the charts, and the project's own theme — or revise it from deck/QA.md
 context: fork
-agent: deck-designer
+agent: slide-composer
 background: false
-allowed-tools: Read, Edit, Glob
+allowed-tools: Read, Glob, Grep, Write, Edit
 ---
 
 ## Instructions
 
-Read `README.md`, `VERIFY.md`, `ARCHITECTURE.md`, `DEMO.md`, and `data/SOURCE.md`.
-Write two files: `deck/deck.md`, based on `templates/deck.template.md` with every
-`{{placeholder}}` replaced, and `deck/architecture.mmd` for the diagram.
+Project: `projects/$(cat .slug)/`. Mode: **$ARGUMENTS** (empty = compose from scratch;
+`revise` = address the findings in `deck/QA.md`).
 
-You have no shell — you don't render the deck. The workflow runs Marp and produces HTML,
-PDF, and PPTX from your markdown.
+Read `deck/STORY.md`, `deck/identity.json` (especially `layouts`), `deck/theme.css` (the
+classes and what they look like), the SVGs in `deck/charts/` and `deck/charts/FIGURES.md`,
+plus `VERIFY.md`, `data/CONTEXT.md` if it exists, and `README.md`.
 
-### The ten slides
+### Write `deck/deck.md`
 
-| # | Slide | What earns its place |
-|---|---|---|
-| 1 | Title | Project name, one-line pitch, date, your name |
-| 2 | The problem | A real question someone actually has |
-| 3 | Why it matters | Who is affected, and what it costs them |
-| 4 | Architecture | The diagram — source → processing → output |
-| 5 | How it works | The one genuinely interesting technical decision |
-| 6 | Demo | Cues only. The live terminal is the content here |
-| 7 | Results | Numbers from `VERIFY.md`, and nothing else |
-| 8 | Limitations | What it doesn't do. Own this slide; it builds credibility |
-| 9 | What's next | The honest next step, not a roadmap fantasy |
-| 10 | Links & data | Repo, source with licence, attribution |
+```markdown
+---
+marp: true
+theme: af-<slug>            # exactly the name in deck/theme.css's @theme comment
+paginate: true
+footer: "<short project name> · agent-factory"
+---
 
-### Craft
+<!-- _class: title -->
+<!-- _paginate: false -->
 
-- **One idea per slide.** If a slide needs a paragraph, it's two slides or it's a note.
-- **Speaker notes on every slide**, in Marp's `<!-- -->` comment syntax. Notes carry the
-  sentences you'd actually say — the slide carries the anchor.
-- **Slide 4's diagram goes in its own file, `deck/architecture.mmd`**, written as a Mermaid
-  `flowchart LR`. Don't put a Mermaid block inside `deck.md`, because Marp doesn't render
-  Mermaid and it would appear as raw code. The workflow renders `architecture.mmd` to
-  `architecture.svg`, and the template's slide 4 already embeds that SVG. Keep it to five
-  or six nodes. A diagram nobody can read from the back of the room is just decoration.
-- Slide 7: every number must appear in `VERIFY.md`. If `VERIFY.md` has no numbers, say
-  what was built and what remains unmeasured. **Never estimate a number for a slide.**
-- Slide 8 is not optional and not filler. "Trained on 400 rows, so the confidence interval
-  is wide" is the kind of thing that makes an audience trust slides 1 through 7.
-- Attribution on slide 10 is a licence obligation for several sources, not a courtesy.
+# <The insight, as a headline>
 
-### If verification failed
+<one line of context · the date · github.com/mlodian/agent-factory>
 
-Say so on slide 1 and again on slide 7. A deck that presents a broken project as working
-is the single worst thing this pipeline could produce — it would embarrass you in the one
-setting where it matters. Present it as "here's how far it got and where it broke", which
-is a genuinely respectable five-minute talk.
+<!--
+Speaker notes: the sentences you'd actually say.
+-->
+
+---
+
+<!-- _class: hero -->
+…
+```
+
+Structure, driven by the story rather than a template:
+- **8–14 slides.** Title, then the answer within the first three slides, then the beats in
+  the story's order, then credibility (the data and method, briefly), the caveat that
+  matters, the so-what, and links with attribution.
+- **Use the art director's classes** via `<!-- _class: … -->`, and vary them. A hero number,
+  then a full-bleed chart, then a split feels designed. Ten identical layouts feel like a
+  report.
+- **Charts** go in as `![](charts/<file>.svg)`. The theme sizes them, so don't set
+  dimensions unless the class requires it.
+- **Headlines state the point** of the slide as a sentence.
+- **≤ 40 visible words per slide** as a target (the gate fails above 90). The detail goes in
+  the speaker notes. Every slide gets notes.
+- An architecture diagram is optional. Include it only if the method *is* the story. If
+  you do, write `deck/architecture.mmd` (a Mermaid `flowchart LR`) and embed
+  `![](architecture.svg)`.
+
+### The number rule
+
+Every number on a slide must appear, exactly as written, in `VERIFY.md`'s printed output,
+in `deck/charts/FIGURES.md`, or in a cited line of `data/CONTEXT.md`. Years and small
+counts are exempt. The provenance gate checks every slide against the workflow's own
+verification log. If you need a number that isn't in those files, **don't write it**. Note
+it for the viz designer instead.
+
+### In `revise` mode
+
+Read `deck/QA.md`. Fix every **blocking** item and as many **should-fix** items as you can.
+Where a fix needs a chart change (a label collision, the wrong emphasis), say so explicitly
+at the end of your reply, so the orchestrator can route it to the viz designer.

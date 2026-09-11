@@ -11,8 +11,8 @@ Checks, grouped:
   provenance   SOURCE.md names a registered, non-denied source; checksums match;
                the cited URL is live
   fabrication  no synthetic-data generators outside tests/
-  claims       every number on the deck's Results slide appears in VERIFY.md;
-               project.json's status agrees with VERIFY.md
+  claims       every number on every slide traces to VERIFY.md or the chart
+               script's FIGURES.md; project.json's status agrees with VERIFY.md
 
 Exit 0 only if nothing FAILs. Writes the report to .provenance-report.md so the
 workflow can attach it to the pull request.
@@ -48,6 +48,7 @@ REQUIRED_FILES = [
     "verify.sh",
     "project.json",
     "deck/deck.md",
+    "deck/STORY.md",
 ]
 DATA_FILES = ["data/SOURCE.md", "data/fetch_data.py"]
 PLACEHOLDER_DOCS = ["README.md", "ARCHITECTURE.md", "DEMO.md", "deck/deck.md"]
@@ -186,12 +187,33 @@ def numbers_in(text: str) -> set[str]:
     return {n.replace(",", "") for n in NUMBER.findall(text)}
 
 
-def results_slide(deck: str) -> str | None:
-    """The Results slide: from '## Results' to the next slide separator."""
-    m = re.search(r"^##\s+Results\b(.*?)(?=^---\s*$|\Z)", deck, re.M | re.S)
-    if not m:
-        return None
-    return re.sub(r"<!--.*?-->", "", m.group(1), flags=re.S)  # speaker notes don't count
+def deck_visible_text(deck: str) -> str:
+    """What an audience actually reads on the slides.
+
+    Drops front matter, speaker notes and directives, code, image references, HTML
+    tags and style blocks, URLs, and ISO dates, so a link to projects/2026-09-11-…
+    or a CSS value isn't mistaken for a claim.
+    """
+    text = re.sub(r"\A---\s*\n.*?\n---\s*\n", "", deck, flags=re.S)
+    text = re.sub(r"<style.*?</style>", " ", text, flags=re.S | re.I)
+    text = re.sub(r"<!--.*?-->", " ", text, flags=re.S)
+    text = re.sub(r"```.*?```", " ", text, flags=re.S)
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", text)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\b(?:https?://|www\.)\S+|\b[\w.-]+\.(?:com|org|io|gov|dev)(?:/\S*)?", " ", text)
+    text = re.sub(r"\b\d{4}-\d{2}-\d{2}(?:T[\d:.]+Z?)?", " ", text)
+    # Identifiers, not claims: "API 2.0", "CC BY 4.0", "CVSS v3.1", "Python 3.12", "ISO 8601".
+    return re.sub(r"(?i)\b(?:api|v|version|cc[ -]by(?:-[a-z]{2})*|cc0|cvss(?:\s*v)?|python|http|iso|utf|rfc|tls)"
+                  r"[\s-]*\d+(?:\.\d+)*\b", " ", text)
+
+
+def exempt(number: str) -> bool:
+    """Years and small counts ("3 reasons", "1 in N") are context, not measurements."""
+    bare = number.rstrip("%")
+    if number.endswith("%") or "." in bare:
+        return False
+    value = int(bare)
+    return 0 <= value <= 12 or 1900 <= value <= 2100
 
 
 def check_contract(project: Path, needs_data: bool, report: Report) -> None:
@@ -292,7 +314,7 @@ def check_fabrication(project: Path, report: Report) -> None:
         report.warn("fabrication", "allowed by annotation, reviewer should confirm: " + exc)
 
 
-def check_claims(project: Path, report: Report) -> None:
+def check_claims(project: Path, report: Report, verify_log: Path | None = None) -> None:
     verify_path, deck_path = project / "VERIFY.md", project / "deck" / "deck.md"
     if not (verify_path.exists() and deck_path.exists()):
         return
@@ -312,23 +334,53 @@ def check_claims(project: Path, report: Report) -> None:
         else:
             report.ok("claims", f"project.json status agrees with VERIFY.md ({verify_status})")
 
-    slide = results_slide(deck_path.read_text(encoding="utf-8"))
-    if slide is None:
-        report.warn("claims", "deck has no `## Results` slide to check")
-        return
-    unsupported = sorted(numbers_in(slide) - numbers_in(verify))
-    if not numbers_in(slide):
-        report.warn("claims", "the Results slide contains no numbers — confirm that's deliberate")
-    elif unsupported:
-        report.fail("claims", "numbers on the Results slide that don't appear in VERIFY.md: " + ", ".join(unsupported))
+    # Every number on every slide must trace to one of three places:
+    #   measured  — what verify.sh actually printed. In CI that's the log the workflow
+    #               captured from its own independent run (--verify-log), NOT VERIFY.md,
+    #               whose prose an agent writes and could launder a number into.
+    #   derived   — deck/charts/FIGURES.md, written by the committed chart script,
+    #               which the workflow regenerates before this gate runs.
+    #   cited     — data/CONTEXT.md bullets that carry a source URL: outside facts
+    #               (e.g. a historical gauge record), visibly marked as not measured.
+    if verify_log is not None:
+        measured, basis = verify_log.read_text(encoding="utf-8", errors="replace"), "the workflow's own verify.sh log"
     else:
-        report.ok("claims", "every number on the Results slide appears in VERIFY.md")
+        measured, basis = verify, "VERIFY.md"
+        report.warn("claims", "checked against VERIFY.md prose — pass --verify-log for the independent check CI runs")
+    allowed = numbers_in(measured)
+    figures = project / "deck" / "charts" / "FIGURES.md"
+    if figures.exists():
+        allowed |= numbers_in(figures.read_text(encoding="utf-8"))
+    context = project / "data" / "CONTEXT.md"
+    cited = 0
+    if context.exists():
+        for line in context.read_text(encoding="utf-8").splitlines():
+            if line.lstrip().startswith(("-", "*")):
+                if re.search(r"https?://\S+", line):
+                    allowed |= numbers_in(re.sub(r"https?://\S+", " ", line))
+                    cited += 1
+                elif numbers_in(line):
+                    report.fail("claims", f"data/CONTEXT.md line has a number but no source URL: {line.strip()[:80]}")
+    shown = numbers_in(deck_visible_text(deck_path.read_text(encoding="utf-8")))
+    unsupported = sorted(n for n in shown - allowed if not exempt(n))
+    if not shown:
+        report.warn("claims", "the deck contains no numbers — confirm that's deliberate")
+    elif unsupported:
+        report.fail("claims", f"numbers on slides not found in {basis}, FIGURES.md, or cited CONTEXT.md: " + ", ".join(unsupported))
+    else:
+        report.ok("claims", f"all {len(shown)} distinct numbers on the slides trace to {basis}, FIGURES.md"
+                  + (f", or {cited} cited context line(s)" if cited else ""))
+    if cited:
+        report.warn("claims", f"{cited} outside fact(s) cited in data/CONTEXT.md — reviewer should confirm each source")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("slug")
     parser.add_argument("--offline", action="store_true", help="skip the URL liveness check")
+    parser.add_argument("--verify-log", type=Path,
+                        help="output captured from the workflow's own verify.sh run; slide numbers "
+                             "are checked against this instead of agent-written VERIFY.md")
     parser.add_argument("--data-only", action="store_true",
                         help="provenance + fabrication only; for mid-pipeline use before docs exist")
     args = parser.parse_args()
@@ -348,7 +400,7 @@ def main() -> int:
             report.ok("provenance", "project declares `source: none` — no dataset to check")
         check_fabrication(project, report)
         if not args.data_only:
-            check_claims(project, report)
+            check_claims(project, report, args.verify_log)
 
     text = report.render()
     print(text)

@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,6 +38,16 @@ def load_projects() -> list[dict]:
     projects.sort(key=lambda p: p.get("date", ""), reverse=True)
     projects.sort(key=lambda p: not p.get("featured", False))  # stable: featured first
     return projects
+
+
+def accent_style(p: dict) -> str:
+    """The project's own accent (from its deck identity) as the card's top stripe."""
+    path = p["_dir"] / "deck" / "identity.json"
+    try:
+        accent = json.loads(path.read_text(encoding="utf-8"))["colors"]["accent"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return ""
+    return f' style="--project-accent:{accent}"' if re.fullmatch(r"#[0-9a-fA-F]{6}", str(accent)) else ""
 
 
 def card(p: dict, released: set[str]) -> str:
@@ -66,7 +77,7 @@ def card(p: dict, released: set[str]) -> str:
         badges.append('<span class="badge failed">Needs work</span>')
 
     return f"""
-    <article class="card{' is-featured' if p.get('featured') else ''}" data-theme-tag="{e(p.get('theme'))}">
+    <article class="card{' is-featured' if p.get('featured') else ''}" data-theme-tag="{e(p.get('theme'))}"{accent_style(p)}>
       <div class="meta"><span class="theme">{e(p.get('theme'))}</span><time>{e(p.get('date'))}</time>{''.join(badges)}</div>
       <h2>{e(p.get('title', slug))}</h2>
       <p class="pitch">{e(p.get('pitch'))}</p>
@@ -112,7 +123,8 @@ def page(projects: list[dict], released: set[str]) -> str:
   .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }}
   .card {{ background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 20px;
           display: flex; flex-direction: column; }}
-  .card.is-featured {{ border-color: var(--accent); }}
+  .card {{ border-top: 4px solid var(--project-accent, var(--rule)); }}
+  .card.is-featured {{ border-color: var(--accent); border-top-color: var(--project-accent, var(--accent)); }}
   .meta {{ display: flex; gap: .6rem; align-items: center; font-size: .78rem; color: var(--muted); flex-wrap: wrap; }}
   .theme {{ text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }}
   .badge {{ padding: .1rem .5rem; border-radius: 999px; font-weight: 600; }}
