@@ -3,9 +3,9 @@
 - Source:     NYC Open Data (Socrata SODA) — 311 Service Requests from 2010 to Present
 - Registry:   nyc-open-data
 - Dataset:    `erm2-nwe9`
-- URL:        `https://data.cityofnewyork.us/resource/erm2-nwe9.csv` — one request per
-  sampled day, e.g.
-  `?$select=created_date,closed_date,complaint_type,agency,borough&$where=created_date >= '2025-01-01T00:00:00' and created_date < '2025-01-02T00:00:00'&$limit=100000&$order=created_date,complaint_type`
+- URL:        https://data.cityofnewyork.us/resource/erm2-nwe9.csv
+  (one request per sampled day; example query string appended to the base URL above:
+  `?$select=created_date,closed_date,complaint_type,agency,borough&$where=created_date >= '2025-01-01T00:00:00' and created_date < '2025-01-02T00:00:00'&$limit=100000&$order=created_date,complaint_type`)
 - Retrieved:  2026-09-12T09:55–10:00Z (37 requests, ~4 minutes including 5xx retries)
 - Licence:    Open (NYC Open Data terms; City of New York)
 - File:       raw/nyc311_sample_2025.csv
