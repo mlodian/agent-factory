@@ -42,6 +42,7 @@ jobs:
         run: python3 scripts/review_context.py --days 7
 
       - name: Review
+        id: review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -54,10 +55,34 @@ jobs:
             --permission-prompts none
             --max-turns 60
 
+      # The reviewer sometimes answers in chat instead of writing the file. The review
+      # is still there, so recover it from the transcript rather than losing the run.
+      - name: Recover the review if it wasn't written to a file
+        if: steps.review.outputs.execution_file != ''
+        env:
+          EXEC: ${{ steps.review.outputs.execution_file }}
+        run: |
+          if [ -s .review.md ]; then echo "reviewer wrote .review.md"; exit 0; fi
+          python3 - "$EXEC" <<'PY'
+          import json, sys, pathlib
+          raw = pathlib.Path(sys.argv[1]).read_text()
+          try: msgs = json.loads(raw)
+          except ValueError: msgs = [json.loads(l) for l in raw.splitlines() if l.strip()]
+          texts = [b["text"] for m in msgs if isinstance(m, dict) and isinstance(m.get("message"), dict)
+                   for b in (m["message"].get("content") or [])
+                   if isinstance(b, dict) and b.get("type") == "text" and b.get("text", "").strip()]
+          body = max(texts, key=len) if texts else ""
+          if len(body) > 200:
+              pathlib.Path(".review.md").write_text(body + "\n\n<sub>Recovered from the run log: the reviewer replied instead of writing .review.md.</sub>\n")
+              print("recovered the review from the transcript")
+          else:
+              print("nothing substantial in the transcript to recover")
+          PY
+
       - name: Open the review issue
         run: |
           if [ ! -s .review.md ]; then
-            echo "::error::The reviewer produced no .review.md."
+            echo "::error::The reviewer produced no .review.md and nothing could be recovered."
             exit 1
           fi
           if ! grep -q '<!-- action:' .review.md; then

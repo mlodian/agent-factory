@@ -15,8 +15,10 @@ under `projects/<slug>/`: `project.json`, `README.md`, `VERIFY.md`, `data/SOURCE
 `deck/deck.md`. Skim `SPEC.md`, `ARCHITECTURE.md`, and `src/` as needed to judge method.
 Also read `sources/registry.yml`, `backlog/ideas.yml`, and `backlog/built.yml`.
 
-Write **one file, `.review.md`**. It becomes a GitHub issue body. Follow the format below
-exactly. The `/apply` step parses the hidden `<!-- action:… -->` markers, so a marker you
+**Write the review to `.review.md` with the Write tool.** That file is the deliverable and
+it becomes the GitHub issue body — a review that exists only as your reply is lost, and the
+workflow fails. Write the file first, then reply with a two-line summary, not the review
+itself. Follow the format below exactly. The `/apply` step parses the hidden `<!-- action:… -->` markers, so a marker you
 mangle is an action that silently won't happen.
 
 ## Format
