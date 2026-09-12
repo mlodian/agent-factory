@@ -96,10 +96,23 @@ jobs:
             echo "slug=${{ steps.resume.outputs.slug }}" >> "$GITHUB_OUTPUT"; exit 0
           fi
           slug="$(tr -d '[:space:]' < .slug 2>/dev/null || true)"
+          # The agent sometimes writes the bare idea slug instead of the dated project
+          # directory. If exactly one project directory matches, that's unambiguous —
+          # use it rather than throwing away a completed pick phase.
+          if [ -n "$slug" ] && [ ! -d "projects/$slug" ]; then
+            matches=(projects/*-"$slug")
+            if [ ${#matches[@]} -eq 1 ] && [ -d "${matches[0]}" ]; then
+              slug="$(basename "${matches[0]}")"
+              printf '%s' "$slug" > .slug
+              echo "::notice::.slug held an idea slug; resolved it to the project directory $slug"
+            fi
+          fi
           if [ -z "$slug" ]; then
             echo "::notice::No project today — no buildable idea (every candidate source may be down)."
           elif ! [[ "$slug" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]{3,60}$ ]] || [ ! -d "projects/$slug" ]; then
-            echo "::error::Agent wrote a malformed or missing slug; refusing to use it."; exit 1
+            echo "::error::Agent wrote a malformed or missing slug ('$slug'); refusing to use it."
+            ls -1 projects/ | sed 's/^/  existing project: /'
+            exit 1
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

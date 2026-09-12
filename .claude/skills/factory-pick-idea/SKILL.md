@@ -17,7 +17,8 @@ allowed-tools: Read, Edit, Glob, Grep, WebFetch, Bash(python3 *), Bash(date *)
 
 ## Instructions
 
-Requested slug (may be empty): **$ARGUMENTS**
+Requested **idea** slug from `backlog/ideas.yml` (may be empty): **$ARGUMENTS**
+Today's project directory is `projects/<today>-<idea slug>`.
 
 1. Read `backlog/ideas.yml` and `sources/registry.yml`.
 
@@ -81,7 +82,10 @@ Requested slug (may be empty): **$ARGUMENTS**
 - <what this deliberately does not do>
 ```
 
-7. Write the slug to `.slug` at the repo root, with no trailing newline.
+7. Write the **project directory name** to `.slug` at the repo root, with no trailing
+   newline. That's the dated one you created in step 6 — `2026-09-12-nyc-311-response-equity`,
+   not the bare idea slug `nyc-311-response-equity`. The workflow reads this file to find the
+   project, and a bare idea slug fails validation.
 
 ## Scope discipline
 
