@@ -46,14 +46,17 @@ before asking again.
 1. **Three candidates arrive as an issue** ("Pick the next project"). Each names the
    question, the data source *as actually fetched that morning*, the likely headline, the
    charts it would produce, the effort, and the risk of it falling flat.
-2. **You tick one and comment `/build`.** Or `/more` for three different candidates, or
-   `/build <slug>` to name any backlog idea instead.
+2. **You tick one and comment `/build`.** Or `/more` for three different candidates,
+   `/build <idea-slug>` to name any backlog idea, or `/present <project-slug>` to give an
+   existing project a new story, look and deck instead.
 3. **That project runs to completion** — build, verify, story, identity, charts, docs, deck,
    QA — and lands as a PR for you to review.
 4. **Merging it triggers the next three proposals.** Nothing is suggested while a project
    PR is still open, so work never piles up.
 
 Two boxes ticked, or none, gets you a comment asking for exactly one rather than a guess.
+So does naming an idea that's already been built (it points you at `/present`), or a project
+slug where an idea slug belongs. It never guesses, and it never silently builds a duplicate.
 
 ## The factory review
 

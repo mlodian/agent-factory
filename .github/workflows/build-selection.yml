@@ -19,7 +19,7 @@ jobs:
       !github.event.issue.pull_request &&
       contains(github.event.issue.labels.*.name, 'project-proposal') &&
       github.event.comment.author_association == 'OWNER' &&
-      (startsWith(github.event.comment.body, '/build') || startsWith(github.event.comment.body, '/more'))
+      (startsWith(github.event.comment.body, '/build') || startsWith(github.event.comment.body, '/more') || startsWith(github.event.comment.body, '/present'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -44,39 +44,35 @@ jobs:
           gh issue comment "$ISSUE" --body "Passed over: \`$offered\`. Drafting three different candidates — a new issue will open shortly."
           gh issue close "$ISSUE" >/dev/null
 
-      - name: Work out which project was chosen
-        id: pick
-        if: startsWith(github.event.comment.body, '/build')
-        run: |
-          if ! slug="$(python3 scripts/selected_proposal.py .issue-body.md --comment "$COMMENT" 2>.err)"; then
-            gh issue comment "$ISSUE" --body "$(cat .err)"
-            echo "::notice::$(cat .err)"
-            echo "go=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          # The slug must be a real backlog idea — a comment can name anything.
-          if ! python3 -c "
-          import sys, yaml
-          ideas = yaml.safe_load(open('backlog/ideas.yml'))['ideas']
-          sys.exit(0 if any(i['slug'] == sys.argv[1] for i in ideas) else 1)
-          " "$slug"; then
-            gh issue comment "$ISSUE" --body "\`$slug\` isn't in \`backlog/ideas.yml\`. Add it with \`/factory-add-idea\` first, or tick one of the proposals."
-            echo "go=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "slug=$slug" >> "$GITHUB_OUTPUT"
-          echo "go=true" >> "$GITHUB_OUTPUT"
-
       - uses: actions/setup-python@v7
-        if: steps.pick.outputs.go == 'true'
+        if: "!startsWith(github.event.comment.body, '/more')"
         with:
           python-version: "3.12"
       - name: Install factory tooling
-        if: steps.pick.outputs.go == 'true'
+        if: "!startsWith(github.event.comment.body, '/more')"
         run: pip install -r scripts/requirements.txt
 
+      # Distinguishes a backlog idea from an existing project, catches an idea that
+      # was already built, and suggests the right command instead of guessing.
+      - name: Work out what was asked for
+        id: pick
+        if: "!startsWith(github.event.comment.body, '/more')"
+        run: |
+          decision="$(python3 scripts/classify_request.py .issue-body.md --comment "$COMMENT")"
+          action="${decision%% *}"
+          slug="${decision#* }"
+          if [ "$action" = error ]; then
+            gh issue comment "$ISSUE" --body "$slug"
+            echo "::notice::$slug"
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "action=$action" >> "$GITHUB_OUTPUT"
+            echo "slug=$slug" >> "$GITHUB_OUTPUT"
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Start the build
-        if: steps.pick.outputs.go == 'true'
+        if: steps.pick.outputs.go == 'true' && steps.pick.outputs.action == 'build'
         env:
           SLUG: ${{ steps.pick.outputs.slug }}
         run: |
@@ -87,3 +83,15 @@ jobs:
 
           It runs phase by phase and checkpoints as it goes, so a usage limit pauses it rather than losing it. You'll get a pull request to review when it's done, and the next three proposals once that PR is merged."
           gh issue close "$ISSUE" >/dev/null
+
+      - name: Start a new presentation
+        if: steps.pick.outputs.go == 'true' && steps.pick.outputs.action == 'present'
+        env:
+          SLUG: ${{ steps.pick.outputs.slug }}
+        run: |
+          gh workflow run present-project.yml -f slug="$SLUG" -f fresh=true
+          sleep 8
+          url="$(gh run list --workflow present-project.yml --limit 1 --json url --jq '.[0].url')"
+          gh issue comment "$ISSUE" --body "Giving **\`$SLUG\`** a new story, look and deck — [follow the run]($url).
+
+          The analysis and data are untouched; only the presentation is rebuilt. It arrives as a separate pull request, so this issue stays open for your project pick."
