@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460" width="760" height="460" font-family="Helvetica,Arial,sans-serif" role="img" aria-label="Raw versus mix-standardised 72-hour closure rate by borough, citywide rate 75.1 percent">
+<rect width="760" height="460" fill="#ffffff"/>
+<text x="60" y="26" font-size="17" font-weight="600" fill="#1b2733">Closed within 72 hours: raw vs. mix-standardised</text>
+<text x="60" y="44" font-size="12" fill="#6b7a8c">367,201 311 requests, 37 sampled days of 2025 (SPEC.md); whiskers are 95% cluster-bootstrap intervals</text>
+<line x1="60" y1="350.0" x2="740" y2="350.0" stroke="#e6ebf0" stroke-width="1"/>
+<text x="50" y="354.0" font-size="11" fill="#6b7a8c" text-anchor="end">0%</text>
+<line x1="60" y1="294.0" x2="740" y2="294.0" stroke="#e6ebf0" stroke-width="1"/>
+<text x="50" y="298.0" font-size="11" fill="#6b7a8c" text-anchor="end">20%</text>
+<line x1="60" y1="238.0" x2="740" y2="238.0" stroke="#e6ebf0" stroke-width="1"/>
+<text x="50" y="242.0" font-size="11" fill="#6b7a8c" text-anchor="end">40%</text>
+<line x1="60" y1="182.0" x2="740" y2="182.0" stroke="#e6ebf0" stroke-width="1"/>
+<text x="50" y="186.0" font-size="11" fill="#6b7a8c" text-anchor="end">60%</text>
+<line x1="60" y1="126.0" x2="740" y2="126.0" stroke="#e6ebf0" stroke-width="1"/>
+<text x="50" y="130.0" font-size="11" fill="#6b7a8c" text-anchor="end">80%</text>
+<line x1="60" y1="70.0" x2="740" y2="70.0" stroke="#e6ebf0" stroke-width="1"/>
+<text x="50" y="74.0" font-size="11" fill="#6b7a8c" text-anchor="end">100%</text>
+<line x1="60" y1="139.8" x2="740" y2="139.8" stroke="#1b2733" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="738" y="133.8" font-size="11" font-weight="600" fill="#1b2733" text-anchor="end">citywide 75.1%</text>
+<rect x="81.8" y="136.1" width="40.8" height="213.9" fill="#c2570a"/>
+<line x1="102.2" y1="126.2" x2="102.2" y2="147.3" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="97.2" y1="126.2" x2="107.2" y2="126.2" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="97.2" y1="147.3" x2="107.2" y2="147.3" stroke="#1b2733" stroke-width="1.2"/>
+<rect x="133.4" y="145.5" width="40.8" height="204.5" fill="#0b6fa4"/>
+<line x1="153.8" y1="138.6" x2="153.8" y2="152.0" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="148.8" y1="138.6" x2="158.8" y2="138.6" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="148.8" y1="152.0" x2="158.8" y2="152.0" stroke="#1b2733" stroke-width="1.2"/>
+<text x="128.0" y="370" font-size="12" fill="#1b2733" text-anchor="middle">Bronx</text>
+<rect x="217.8" y="143.1" width="40.8" height="206.9" fill="#c2570a"/>
+<line x1="238.2" y1="137.8" x2="238.2" y2="148.2" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="233.2" y1="137.8" x2="243.2" y2="137.8" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="233.2" y1="148.2" x2="243.2" y2="148.2" stroke="#1b2733" stroke-width="1.2"/>
+<rect x="269.4" y="146.0" width="40.8" height="204.0" fill="#0b6fa4"/>
+<line x1="289.8" y1="139.7" x2="289.8" y2="152.0" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="284.8" y1="139.7" x2="294.8" y2="139.7" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="284.8" y1="152.0" x2="294.8" y2="152.0" stroke="#1b2733" stroke-width="1.2"/>
+<text x="264.0" y="370" font-size="12" fill="#1b2733" text-anchor="middle">Brooklyn</text>
+<rect x="353.8" y="151.1" width="40.8" height="198.9" fill="#c2570a"/>
+<line x1="374.2" y1="144.6" x2="374.2" y2="157.8" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="369.2" y1="144.6" x2="379.2" y2="144.6" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="369.2" y1="157.8" x2="379.2" y2="157.8" stroke="#1b2733" stroke-width="1.2"/>
+<rect x="405.4" y="133.6" width="40.8" height="216.4" fill="#0b6fa4"/>
+<line x1="425.8" y1="127.8" x2="425.8" y2="139.5" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="420.8" y1="127.8" x2="430.8" y2="127.8" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="420.8" y1="139.5" x2="430.8" y2="139.5" stroke="#1b2733" stroke-width="1.2"/>
+<text x="400.0" y="370" font-size="12" fill="#1b2733" text-anchor="middle">Manhattan</text>
+<rect x="489.8" y="127.9" width="40.8" height="222.1" fill="#c2570a"/>
+<line x1="510.2" y1="123.3" x2="510.2" y2="132.4" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="505.2" y1="123.3" x2="515.2" y2="123.3" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="505.2" y1="132.4" x2="515.2" y2="132.4" stroke="#1b2733" stroke-width="1.2"/>
+<rect x="541.4" y="135.2" width="40.8" height="214.8" fill="#0b6fa4"/>
+<line x1="561.8" y1="129.7" x2="561.8" y2="140.7" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="556.8" y1="129.7" x2="566.8" y2="129.7" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="556.8" y1="140.7" x2="566.8" y2="140.7" stroke="#1b2733" stroke-width="1.2"/>
+<text x="536.0" y="370" font-size="12" fill="#1b2733" text-anchor="middle">Queens</text>
+<rect x="625.8" y="153.0" width="40.8" height="197.0" fill="#c2570a"/>
+<line x1="646.2" y1="146.2" x2="646.2" y2="159.9" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="641.2" y1="146.2" x2="651.2" y2="146.2" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="641.2" y1="159.9" x2="651.2" y2="159.9" stroke="#1b2733" stroke-width="1.2"/>
+<rect x="677.4" y="137.9" width="40.8" height="212.1" fill="#0b6fa4"/>
+<line x1="697.8" y1="131.4" x2="697.8" y2="144.4" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="692.8" y1="131.4" x2="702.8" y2="131.4" stroke="#1b2733" stroke-width="1.2"/>
+<line x1="692.8" y1="144.4" x2="702.8" y2="144.4" stroke="#1b2733" stroke-width="1.2"/>
+<text x="672.0" y="370" font-size="12" fill="#1b2733" text-anchor="middle">Staten Island</text>
+<rect x="60" y="416" width="12" height="12" fill="#c2570a"/>
+<text x="78" y="426" font-size="11.5" fill="#1b2733">raw (borough's own complaint mix)</text>
+<rect x="320" y="416" width="12" height="12" fill="#0b6fa4"/>
+<text x="338" y="426" font-size="11.5" fill="#1b2733">standardised (citywide complaint mix)</text>
+<text x="60" y="444" font-size="10.5" fill="#6b7a8c">whiskers: 95% cluster bootstrap interval, resampled over the 37 sampled days</text>
+</svg>
