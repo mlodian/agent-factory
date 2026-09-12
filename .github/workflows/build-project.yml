@@ -1,17 +1,16 @@
-name: Daily project
+name: Build project
 
 # Build one documented, demo-ready project from real public data.
+#
+# Started by build-selection.yml when you pick a proposal (propose.yml offers
+# three), or by hand with an idea slug. One project runs at a time: the next
+# proposals only appear once this project's PR is merged.
 #
 # Every phase checkpoints to the branch as it finishes, so hitting the Claude
 # usage limit costs one phase rather than the whole run. resume.yml retries
 # hourly and the run skips phases already recorded in projects/<slug>/.phases.
 
 on:
-  # Paused until a manual run produces a verified PR. To turn the daily run on,
-  # uncomment the next two lines. Commit that edit yourself: GitHub attributes
-  # scheduled runs to whoever last changed the cron, and it rejects bot actors.
-  # schedule:
-  #   - cron: "0 21 * * *"      # 05:00 Asia/Manila (UTC+8)
   workflow_dispatch:
     inputs:
       idea:
@@ -19,12 +18,12 @@ on:
         required: false
         default: ""
       resume_slug:
-        description: "Resume a paused project, e.g. 2026-09-12-epss-vs-cvss-triage (set by resume.yml)"
+        description: "Resume a paused project (set by resume.yml)"
         required: false
         default: ""
 
 concurrency:
-  group: daily-project
+  group: build-project
   cancel-in-progress: false
 
 permissions:
@@ -65,12 +64,12 @@ jobs:
           if ! [[ "$slug" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]{3,60}$ ]]; then
             echo "::error::malformed resume_slug"; exit 1
           fi
-          git fetch -q origin "daily/$slug"
-          git checkout -q -B "daily/$slug" "origin/daily/$slug"
+          git fetch -q origin "build/$slug"
+          git checkout -q -B "build/$slug" "origin/build/$slug"
           printf '%s' "$slug" > .slug
           echo "resuming=true" >> "$GITHUB_OUTPUT"
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
-          echo "::notice::resuming daily/$slug — done so far: $(tr '\n' ' ' < "projects/$slug/.phases" 2>/dev/null || echo none)"
+          echo "::notice::resuming build/$slug — done so far: $(tr '\n' ' ' < "projects/$slug/.phases" 2>/dev/null || echo none)"
 
       # ── Phase 1: pick. Special-cased because the slug doesn't exist yet. ───
       - name: Pick an idea
@@ -104,12 +103,12 @@ jobs:
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git checkout -q -B "daily/$slug"
+            git checkout -q -B "build/$slug"
             mkdir -p "projects/$slug"
             echo pick > "projects/$slug/.phases"
             git reset -q && git add -- "projects/$slug" "backlog/"
             git commit -q -m "checkpoint(pick): $slug"
-            git push -q -u origin "HEAD:daily/$slug"
+            git push -q -u origin "HEAD:build/$slug"
           fi
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
 
@@ -118,63 +117,63 @@ jobs:
         if: steps.slug.outputs.slug != ''
         uses: ./.github/actions/phase
         with: { slug: "${{ steps.slug.outputs.slug }}", phase: build, prompt: "/factory-build",
-                branch: "daily/${{ steps.slug.outputs.slug }}", max_turns: "150", paths: "backlog/",
+                branch: "build/${{ steps.slug.outputs.slug }}", max_turns: "150", paths: "backlog/",
                 oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
       - name: Verify
         if: steps.slug.outputs.slug != ''
         uses: ./.github/actions/phase
         with: { slug: "${{ steps.slug.outputs.slug }}", phase: verify, prompt: "/factory-verify",
-                branch: "daily/${{ steps.slug.outputs.slug }}", max_turns: "60",
+                branch: "build/${{ steps.slug.outputs.slug }}", max_turns: "60",
                 oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
       - name: Story
         if: steps.slug.outputs.slug != ''
         uses: ./.github/actions/phase
         with: { slug: "${{ steps.slug.outputs.slug }}", phase: story, prompt: "/factory-story",
-                branch: "daily/${{ steps.slug.outputs.slug }}", max_turns: "40",
+                branch: "build/${{ steps.slug.outputs.slug }}", max_turns: "40",
                 oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
       - name: Identity
         if: steps.slug.outputs.slug != ''
         uses: ./.github/actions/phase
         with: { slug: "${{ steps.slug.outputs.slug }}", phase: art, prompt: "/factory-art",
-                branch: "daily/${{ steps.slug.outputs.slug }}", max_turns: "40",
+                branch: "build/${{ steps.slug.outputs.slug }}", max_turns: "40",
                 oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
       - name: Charts
         if: steps.slug.outputs.slug != ''
         uses: ./.github/actions/phase
         with: { slug: "${{ steps.slug.outputs.slug }}", phase: viz, prompt: "/factory-viz",
-                branch: "daily/${{ steps.slug.outputs.slug }}", max_turns: "90",
+                branch: "build/${{ steps.slug.outputs.slug }}", max_turns: "90",
                 oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
       - name: Docs
         if: steps.slug.outputs.slug != ''
         uses: ./.github/actions/phase
         with: { slug: "${{ steps.slug.outputs.slug }}", phase: docs, prompt: "/factory-docs",
-                branch: "daily/${{ steps.slug.outputs.slug }}", max_turns: "40",
+                branch: "build/${{ steps.slug.outputs.slug }}", max_turns: "40",
                 oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
       - name: Deck
         if: steps.slug.outputs.slug != ''
         uses: ./.github/actions/phase
         with: { slug: "${{ steps.slug.outputs.slug }}", phase: deck, prompt: "/factory-deck",
-                branch: "daily/${{ steps.slug.outputs.slug }}", max_turns: "50",
+                branch: "build/${{ steps.slug.outputs.slug }}", max_turns: "50",
                 oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
       - name: QA and revisions
         if: steps.slug.outputs.slug != ''
         uses: ./.github/actions/phase
         with: { slug: "${{ steps.slug.outputs.slug }}", phase: qa, prompt: "/factory-qa",
-                branch: "daily/${{ steps.slug.outputs.slug }}", max_turns: "120",
+                branch: "build/${{ steps.slug.outputs.slug }}", max_turns: "120",
                 oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
       - name: Ship
         if: steps.slug.outputs.slug != ''
         uses: ./.github/actions/phase
         with: { slug: "${{ steps.slug.outputs.slug }}", phase: ship, prompt: "/factory-ship",
-                branch: "daily/${{ steps.slug.outputs.slug }}", max_turns: "30", paths: "backlog/",
+                branch: "build/${{ steps.slug.outputs.slug }}", max_turns: "30", paths: "backlog/",
                 oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
       # ── Deterministic gates ───────────────────────────────────────────────
@@ -199,7 +198,7 @@ jobs:
           git reset -q
           git add -- "projects/$SLUG" "backlog/"
           git diff --cached --quiet || git commit -q -m "checkpoint(render): $SLUG"
-          git push -q origin "HEAD:daily/$SLUG"
+          git push -q origin "HEAD:build/$SLUG"
 
       - name: Upload deck for review
         if: steps.gate.outputs.render == 'success'
@@ -213,7 +212,7 @@ jobs:
         if: steps.slug.outputs.slug != ''
         env:
           SLUG: ${{ steps.slug.outputs.slug }}
-          BRANCH: daily/${{ steps.slug.outputs.slug }}
+          BRANCH: build/${{ steps.slug.outputs.slug }}
           OK: ${{ steps.gate.outputs.ok }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -239,7 +238,7 @@ jobs:
           for l in in-progress verified needs-work; do gh label create "$l" --force >/dev/null 2>&1 || true; done
           if ! gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
             gh pr create --draft --head "$BRANCH" --base main \
-              --title "Daily project: $SLUG" --body-file .pr-body.md
+              --title "Project: $SLUG" --body-file .pr-body.md
           else
             gh pr edit "$BRANCH" --body-file .pr-body.md
           fi

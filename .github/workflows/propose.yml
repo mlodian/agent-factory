@@ -1,0 +1,114 @@
+name: Propose projects
+
+# Offer three candidate projects as an issue for the owner to choose from.
+#
+# Only ever proposes when nothing is in flight: one project runs to completion
+# (its PR merged) before the next menu appears. Triggers the moment a project PR
+# is merged, with a daily backstop that stays quiet while work is open.
+
+on:
+  schedule:
+    - cron: "0 21 * * *"        # 05:00 Asia/Manila — skipped unless idle
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      exclude:
+        description: "Slugs already passed over (space-separated)"
+        required: false
+        default: ""
+
+concurrency:
+  group: propose
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  propose:
+    # On a merge, only for a project branch; other triggers always evaluate.
+    if: github.event_name != 'pull_request' || (github.event.pull_request.merged == true && (startsWith(github.event.pull_request.head.ref, 'build/') || startsWith(github.event.pull_request.head.ref, 'daily/')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FACTORY_CONTACT_EMAIL: ${{ vars.FACTORY_CONTACT_EMAIL }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Only propose when nothing is in flight
+        id: idle
+        run: |
+          open_work="$(gh pr list --state open --json headRefName \
+                        --jq '[.[] | select(.headRefName | startswith("build/") or startswith("daily/") or startswith("present/"))] | length')"
+          open_menu="$(gh issue list --state open --label project-proposal --json number --jq 'length')"
+          if [ "$open_work" != 0 ]; then
+            echo "::notice::A project is still open — finishing it before suggesting another."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          elif [ "$open_menu" != 0 ]; then
+            echo "::notice::A proposal issue is already waiting for a pick."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v7
+        if: steps.idle.outputs.go == 'true'
+        with:
+          python-version: "3.12"
+      - name: Install factory tooling
+        if: steps.idle.outputs.go == 'true'
+        run: pip install -r scripts/requirements.txt
+
+      - name: Draft three proposals
+        id: draft
+        if: steps.idle.outputs.go == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          allowed_bots: "github-actions[bot]"
+          settings: .github/agent-settings.json
+          prompt: "/factory-propose ${{ inputs.exclude }}"
+          claude_args: |
+            --model claude-opus-5
+            --permission-mode acceptEdits
+            --permission-prompts none
+            --max-turns 50
+
+      # The scout sometimes answers in chat instead of writing the file.
+      - name: Recover the proposals if they weren't written to a file
+        if: steps.idle.outputs.go == 'true' && steps.draft.outputs.execution_file != ''
+        env:
+          EXEC: ${{ steps.draft.outputs.execution_file }}
+        run: |
+          if [ -s .proposals.md ]; then exit 0; fi
+          python3 - "$EXEC" <<'PY'
+          import json, pathlib, sys
+          raw = pathlib.Path(sys.argv[1]).read_text()
+          try: msgs = json.loads(raw)
+          except ValueError: msgs = [json.loads(l) for l in raw.splitlines() if l.strip()]
+          texts = [b["text"] for m in msgs if isinstance(m, dict) and isinstance(m.get("message"), dict)
+                   for b in (m["message"].get("content") or [])
+                   if isinstance(b, dict) and b.get("type") == "text" and b.get("text", "").strip()]
+          body = max(texts, key=len) if texts else ""
+          if "<!-- proposal:" in body:
+              pathlib.Path(".proposals.md").write_text(body + "\n")
+              print("recovered proposals from the transcript")
+          PY
+
+      - name: Open the proposal issue
+        if: steps.idle.outputs.go == 'true'
+        run: |
+          if [ ! -s .proposals.md ] || ! grep -q '<!-- proposal:' .proposals.md; then
+            echo "::error::No usable proposals were produced."
+            exit 1
+          fi
+          n="$(grep -c '<!-- proposal:' .proposals.md)"
+          echo "::notice::proposing $n candidates"
+          gh label create project-proposal --color 1d76db --description "Waiting for the owner to pick the next project" --force >/dev/null 2>&1 || true
+          gh issue create --title "Pick the next project — $(date -u +%Y-%m-%d)" \
+            --label project-proposal --body-file .proposals.md

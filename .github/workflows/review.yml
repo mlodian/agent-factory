@@ -1,4 +1,4 @@
-name: Weekly review
+name: Factory review
 
 # A read-only reviewer agent assesses the week's projects and the factory's
 # health, then opens an issue of checkbox recommendations. Nothing here commits:
@@ -6,11 +6,11 @@ name: Weekly review
 
 on:
   schedule:
-    - cron: "0 1 * * 6"         # Saturday 09:00 Asia/Manila (UTC+8)
+    - cron: "0 1 1,15 * *"         # Saturday 09:00 Asia/Manila (UTC+8)
   workflow_dispatch:
 
 concurrency:
-  group: weekly-review
+  group: factory-review
   cancel-in-progress: false
 
 permissions:
@@ -39,7 +39,7 @@ jobs:
       # Facts first, from the GitHub API, so the reviewer never needs a shell.
       # Also copies unmerged projects into projects/ so they can be read.
       - name: Gather the week's facts
-        run: python3 scripts/review_context.py --days 7
+        run: python3 scripts/review_context.py --days 16
 
       - name: Review
         id: review
@@ -88,12 +88,12 @@ jobs:
           if ! grep -q '<!-- action:' .review.md; then
             echo "::warning::The review has no actionable items this week."
           fi
-          prev="$(gh issue list --label weekly-review --state open --json number --jq '[.[].number] | map("#\(.)") | join(", ")')"
+          prev="$(gh issue list --label factory-review --state open --json number --jq '[.[].number] | map("#\(.)") | join(", ")')"
           if [ -n "$prev" ]; then
             printf '\n> [!NOTE]\n> Earlier review(s) still open: %s. /apply still works on them.\n' "$prev" >> .review.md
           fi
-          gh label create weekly-review --color 5319e7 --description "Weekly factory review" --force
+          gh label create factory-review --color 5319e7 --description "Weekly factory review" --force
           gh issue create \
-            --title "Weekly review — week of $(date -u +%Y-%m-%d)" \
-            --label weekly-review \
+            --title "Factory review — $(date -u +%Y-%m-%d)" \
+            --label factory-review \
             --body-file .review.md

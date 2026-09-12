@@ -46,7 +46,7 @@ jobs:
 
             case "$branch" in
               present/*) wf="present-project.yml"; arg="slug=$slug" ;;
-              daily/*)   wf="daily-project.yml";   arg="resume_slug=$slug" ;;
+              build/*|daily/*) wf="build-project.yml"; arg="resume_slug=$slug" ;;
               *) echo "PR #$num: branch $branch isn't factory work — skipping"; continue ;;
             esac
 

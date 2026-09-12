@@ -1,6 +1,6 @@
-name: Apply weekly review
+name: Apply factory review
 
-# Triggered when the repo OWNER comments /apply on a weekly-review issue.
+# Triggered when the repo OWNER comments /apply on a factory-review issue.
 # Applies only the ticked items, validated by scripts/apply_review.py, and
 # opens a pull request. Merging that PR is the final confirmation.
 
@@ -21,7 +21,7 @@ jobs:
   apply:
     if: >-
       !github.event.issue.pull_request &&
-      contains(github.event.issue.labels.*.name, 'weekly-review') &&
+      contains(github.event.issue.labels.*.name, 'factory-review') &&
       startsWith(github.event.comment.body, '/apply') &&
       github.event.comment.author_association == 'OWNER'
     runs-on: ubuntu-latest
@@ -66,10 +66,10 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           branch: review/apply-${{ github.event.issue.number }}
-          title: "Apply weekly review #${{ github.event.issue.number }}"
-          commit-message: "Apply weekly review #${{ github.event.issue.number }}"
+          title: "Apply factory review #${{ github.event.issue.number }}"
+          commit-message: "Apply factory review #${{ github.event.issue.number }}"
           body-path: .apply-pr-body.md
-          labels: weekly-review
+          labels: factory-review
           # Only the flags and the backlog — nothing else can ride along.
           add-paths: |
             projects/*/project.json

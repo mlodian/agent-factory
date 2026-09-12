@@ -1,7 +1,11 @@
 # agent-factory
 
-An autonomous pipeline that builds one small, documented, demo-ready project per day.
-A GitHub Actions cron invokes `/factory-run`, which runs six phases and opens a pull request.
+A pipeline that builds small, documented, demo-ready projects from real public data.
+The owner picks one of three proposed candidates; the workflow then runs the project
+phase by phase — pick, build, verify, story, identity, charts, docs, deck, QA, ship —
+checkpointing each phase to its branch, and opens a pull request.
+
+One project runs at a time: nothing new is proposed until the open project's PR is merged.
 
 ## Non-negotiables
 

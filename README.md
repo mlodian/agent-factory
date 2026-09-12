@@ -1,23 +1,28 @@
 # agent-factory
 
-A Claude Code pipeline that builds one small, documented, demo-ready project every day
-from real public data. It verifies each project independently, then opens a pull request
-for a human to review.
+A Claude Code pipeline that builds small, documented, demo-ready projects from real public
+data. It proposes what to build, verifies each project independently, and opens a pull
+request for a human to review.
 
 **Showcase:** [mlodian.github.io/agent-factory](https://mlodian.github.io/agent-factory)
 
+It proposes three projects, you pick one, and it builds that one to completion before
+suggesting more.
+
 Every project ships with a README, an architecture note, a five-minute demo script, and a
-10-slide deck (HTML, PDF, PPTX). Every dataset is cited with its URL, licence, and SHA256
+deck of 8–14 slides with its own visual identity (HTML, PDF, PPTX). Every dataset is cited with its URL, licence, and SHA256
 checksum. Nothing merges on its own.
 
-## How a day works
+## How a project happens
 
 ```
-05:00 Manila   GitHub Actions cron → claude-code-action → /factory-run
-                 1  factory-pick-idea   idea-scout        choose an idea, confirm its source is live
+you pick      propose.yml offers 3 candidates as an issue, each source checked live
+              → tick one, comment /build   (or /more for three different ones)
+then          build-selection.yml starts that project — and only that one
+                 1  factory-pick-idea   idea-scout        confirm the source is live, write SPEC
                  2  factory-build       builder           fetch real data, write code + tests
                  3  factory-verify      verifier          clean-venv run, write VERIFY.md
-                 4  factory-present     the presentation team (below)
+                 4  the presentation team (below)
                  5  factory-ship        —                 metadata, ledger, PR body
                then scripts/gate.sh, which trusts none of the above:
                  charts      rebuilt from the committed chart script + data
@@ -27,14 +32,33 @@ checksum. Nothing merges on its own.
                  render      Marp → HTML / PDF / PPTX
                  → pull request: "verified", or a draft labelled "needs-work"
 on merge       publish.yml → PDF/PPTX to a GitHub Release, rebuild the showcase site
+               propose.yml → the next three candidates, now that you're free
 Mondays        check-sources.yml → probe every data source, open an issue if one is down
-Saturdays      weekly-review.yml → a read-only reviewer opens a review issue (see below)
+1st & 15th     review.yml → a read-only reviewer opens a review issue (see below)
+hourly         resume.yml → continues anything the usage limit paused
 ```
 
-## The weekly review
+## One project at a time
 
-Every Saturday at 09:00 Manila, a reviewer agent reads the week's projects and the
-factory's health, then opens an issue titled **"Weekly review — week of …"**. GitHub emails
+The factory doesn't build on a timer. It asks first, and it finishes what you picked
+before asking again.
+
+1. **Three candidates arrive as an issue** ("Pick the next project"). Each names the
+   question, the data source *as actually fetched that morning*, the likely headline, the
+   charts it would produce, the effort, and the risk of it falling flat.
+2. **You tick one and comment `/build`.** Or `/more` for three different candidates, or
+   `/build <slug>` to name any backlog idea instead.
+3. **That project runs to completion** — build, verify, story, identity, charts, docs, deck,
+   QA — and lands as a PR for you to review.
+4. **Merging it triggers the next three proposals.** Nothing is suggested while a project
+   PR is still open, so work never piles up.
+
+Two boxes ticked, or none, gets you a comment asking for exactly one rather than a guess.
+
+## The factory review
+
+On the **1st and 15th** at 09:00 Manila, a reviewer agent reads the period's projects and
+the factory's health, then opens an issue titled **"Factory review — …"**. GitHub emails
 it to you.
 
 1. **Read it.** Each project gets a verdict and a reason: *Feature*, *Keep*, *Fix before
@@ -48,7 +72,7 @@ it to you.
 
 Nothing is featured unless you tick it *and* merge it. The reviewer has no shell, no web
 access, and no way to commit. Only the repo owner's `/apply` comment triggers changes.
-Run a review on demand from **Actions → Weekly review → Run workflow**, or locally with
+Run a review on demand from **Actions → Factory review → Run workflow**, or locally with
 `/factory-review`.
 
 ## Usage limits and resuming
@@ -136,11 +160,10 @@ Then, under **Settings → Secrets and variables → Actions**:
 Finally, set **Settings → Pages → Source** to "GitHub Actions", and **Settings → Actions →
 General → Workflow permissions** to allow Actions to create pull requests.
 
-### First runs
+### Starting it
 
-Run it by hand before trusting the cron: **Actions → Daily project → Run workflow**.
-You can pass an idea slug, for example `cvss-vs-exploitation`. Once three runs in a row
-produce a PR labelled `verified`, leave the schedule on.
+Run **Actions → Propose projects → Run workflow**. Three candidates arrive as an issue
+within a few minutes; tick one, comment `/build`, and the factory takes it from there.
 
 ## Using it by hand
 
@@ -151,7 +174,8 @@ Open Claude Code in this directory:
 | `/factory-run [slug]` | The whole pipeline, locally |
 | `/factory-add-idea "…"` | Add an idea, checked against the source registry |
 | `/factory-present [slug]` | Run the presentation team on a built project |
-| `/factory-review` | The weekly review, run locally (writes `.review.md`) |
+| `/factory-review` | The factory review, run locally (writes `.review.md`) |
+| `/factory-propose` | Draft three candidate projects locally (writes `.proposals.md`) |
 | `/factory-promote review` | Ad-hoc curation: which recent projects deserve `featured` |
 | `/factory-sync-profile` | Update the "Recent builds" section of your GitHub profile README |
 | `/factory-rehearse [slug]` | Practise a demo. It asks the questions an audience would. |
