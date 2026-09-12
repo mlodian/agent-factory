@@ -1,0 +1,4 @@
+# The analysis is standard library only (csv, datetime, statistics, random, urllib) --
+# no pandas, no numpy. Counting and summing a few hundred thousand short rows needs no
+# dataframe library, and being able to read the arithmetic matters more here.
+pytest==8.3.4
