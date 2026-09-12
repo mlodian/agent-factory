@@ -60,3 +60,18 @@ overflow, clipping, collision, a broken image, or illegible text, any FAIL from 
 mechanical gates (other than QA.md itself missing on this pass), or any audience score
 ≤ 2. Otherwise PASS. Report the verdict as it is. QA exists to stop a weak deck, not to
 wave one through.
+
+### 3. Fix what failed, then re-check — up to two more rounds
+
+If the verdict is FAIL, route each blocking finding to whoever owns it:
+
+- Deck text, structure, ordering, or layout → `/factory-deck revise`
+- A chart problem (label collision, wrong emphasis, a misleading scale) → `/factory-viz`
+- A palette or theme defect (contrast, text overflowing its box) → `/factory-art`
+- An untraceable claim → it gets removed or re-sourced, never waved through
+
+Then run the three reviewers again and rewrite `deck/QA.md` as round *n+1*.
+
+Stop after round 3 even if it still fails. Leave the honest `VERDICT: FAIL` in place: the
+workflow opens the PR as a draft labelled `needs-work` with your report in the body, and a
+human takes it from there. Never edit a verdict to PASS without fixing the problem.

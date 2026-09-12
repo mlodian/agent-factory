@@ -2,7 +2,7 @@
 name: viz-designer
 description: Designs and renders the deck's charts from the project's real data, as a reproducible script the workflow re-runs. Used by factory-viz.
 tools: Read, Glob, Grep, Write, Edit, Bash
-model: opus
+model: sonnet
 effort: high
 maxTurns: 80
 ---

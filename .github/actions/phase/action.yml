@@ -1,0 +1,95 @@
+name: Factory phase
+description: Run one agent phase, then checkpoint its output to the branch so a usage limit can't undo it.
+
+inputs:
+  slug:        { description: "Project slug", required: true }
+  phase:       { description: "Phase name, recorded in projects/<slug>/.phases", required: true }
+  prompt:      { description: "Prompt for the agent, e.g. /factory-story", required: true }
+  branch:      { description: "Branch to checkpoint onto", required: true }
+  oauth_token: { description: "CLAUDE_CODE_OAUTH_TOKEN", required: true }
+  model:       { description: "Model for the orchestrator of this phase", default: "claude-opus-5" }
+  max_turns:   { description: "Turn cap for this phase", default: "80" }
+  paths:       { description: "Newline-separated paths to commit", default: "" }
+  # resume.yml re-dispatches paused work, so the actor is github-actions[bot].
+  # The action rejects bot actors unless they're listed here.
+  allowed_bots: { description: "Bot actors allowed to trigger the agent", default: "github-actions[bot]" }
+
+outputs:
+  status:
+    description: "done | skipped | failed"
+    value: ${{ steps.report.outputs.status || steps.skipped.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    # A phase already recorded in .phases was completed by an earlier attempt.
+    - id: check
+      shell: bash
+      run: |
+        if [ -f "projects/${{ inputs.slug }}/.phases" ] && grep -qx "${{ inputs.phase }}" "projects/${{ inputs.slug }}/.phases"; then
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::phase ${{ inputs.phase }} already done — skipping"
+        else
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - id: run
+      if: steps.check.outputs.skip == 'false' && env.FACTORY_HALT != 'true'
+      continue-on-error: true
+      uses: anthropics/claude-code-action@v1
+      with:
+        claude_code_oauth_token: ${{ inputs.oauth_token }}
+        github_token: ${{ github.token }}
+        allowed_bots: ${{ inputs.allowed_bots }}
+        settings: .github/agent-settings.json
+        prompt: ${{ inputs.prompt }}
+        claude_args: |
+          --model ${{ inputs.model }}
+          --permission-mode acceptEdits
+          --permission-prompts none
+          --max-turns ${{ inputs.max_turns }}
+
+    # Commit whatever exists, even when the phase failed: partial work is worth
+    # keeping, and the next attempt overwrites it. Only a successful phase is
+    # recorded in .phases, so a failed one runs again.
+    - id: report
+      if: steps.check.outputs.skip == 'false' && env.FACTORY_HALT != 'true'
+      shell: bash
+      env:
+        SLUG: ${{ inputs.slug }}
+        PHASE: ${{ inputs.phase }}
+        BRANCH: ${{ inputs.branch }}
+        OUTCOME: ${{ steps.run.outcome }}
+        EXTRA_PATHS: ${{ inputs.paths }}
+      run: |
+        set -euo pipefail
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git reset -q                       # nothing an agent staged may ride along
+
+        if [ "$OUTCOME" = success ]; then
+          touch "projects/$SLUG/.phases"
+          grep -qx "$PHASE" "projects/$SLUG/.phases" || echo "$PHASE" >> "projects/$SLUG/.phases"
+          echo "status=done" >> "$GITHUB_OUTPUT"
+        else
+          echo "status=failed" >> "$GITHUB_OUTPUT"
+          echo "FACTORY_HALT=true" >> "$GITHUB_ENV"
+          echo "FACTORY_FAILED_PHASE=$PHASE" >> "$GITHUB_ENV"
+        fi
+
+        git add -- "projects/$SLUG" || true
+        if [ -n "$EXTRA_PATHS" ]; then
+          while IFS= read -r p; do [ -n "$p" ] && git add -- $p || true; done <<< "$EXTRA_PATHS"
+        fi
+        if git diff --cached --quiet; then
+          echo "::notice::phase $PHASE produced no changes to commit"
+        else
+          git commit -q -m "checkpoint($PHASE): $SLUG"
+          git push -q origin "HEAD:$BRANCH"
+          echo "::notice::checkpointed $PHASE to $BRANCH"
+        fi
+
+    - id: skipped
+      if: steps.check.outputs.skip == 'true' || env.FACTORY_HALT == 'true'
+      shell: bash
+      run: echo "status=skipped" >> "$GITHUB_OUTPUT"

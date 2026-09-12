@@ -2,7 +2,7 @@
 name: slide-composer
 description: Composes the story-driven Marp deck from the story, the charts, and the project's visual identity — and revises it from QA feedback. Used by factory-deck.
 tools: Read, Glob, Grep, Write, Edit
-model: opus
+model: sonnet
 effort: high
 maxTurns: 30
 ---

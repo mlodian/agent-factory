@@ -51,6 +51,23 @@ access, and no way to commit. Only the repo owner's `/apply` comment triggers ch
 Run a review on demand from **Actions → Weekly review → Run workflow**, or locally with
 `/factory-review`.
 
+## Usage limits and resuming
+
+A full run is a lot of agent work, and it can hit your Claude plan's usage limit partway
+through. That used to throw the run away. Now it doesn't:
+
+- **Every phase checkpoints.** As soon as a phase finishes, its output is committed to the
+  project's branch and the phase name is recorded in `projects/<slug>/.phases`.
+- **A paused run leaves an open PR** labelled `in-progress`, listing the phases already done.
+- **`resume.yml` retries hourly.** It re-dispatches the workflow, which skips finished
+  phases and continues. It gives up after 8 attempts and labels the PR `stalled`.
+- **Rerunning by hand does the same thing.** Run the workflow again with the same slug. To
+  start over instead, tick **fresh** on Present project.
+
+So a usage limit costs you one phase, not a run. To lower usage: Opus does the work where
+taste shows (story, art direction, audience critique, docs, idea picking) and Sonnet does
+the rest (build, verify, charts, slide composition, fact-checking, visual QA).
+
 ## The presentation team
 
 Each project gets a presentation built for its own finding, not poured into a template.

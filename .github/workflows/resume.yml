@@ -1,0 +1,77 @@
+name: Resume paused work
+
+# Work paused by the Claude usage limit leaves an open PR labelled `in-progress`
+# with its finished phases already committed. This checks hourly and re-dispatches
+# the right workflow, which skips completed phases and carries on.
+#
+# Costs nothing when there's nothing to resume: it only calls the GitHub API.
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: resume
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: write
+
+env:
+  MAX_ATTEMPTS: 8
+
+jobs:
+  resume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Resume anything paused
+        run: |
+          set -euo pipefail
+          prs="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --label in-progress \
+                   --json number,headRefName,labels --jq '.[] | @base64')"
+          if [ -z "$prs" ]; then echo "nothing paused"; exit 0; fi
+
+          for row in $prs; do
+            json="$(echo "$row" | base64 -d)"
+            num="$(jq -r .number <<<"$json")"
+            branch="$(jq -r .headRefName <<<"$json")"
+            labels="$(jq -r '[.labels[].name] | join(" ")' <<<"$json")"
+            slug="${branch#*/}"
+
+            case "$branch" in
+              present/*) wf="present-project.yml"; arg="slug=$slug" ;;
+              daily/*)   wf="daily-project.yml";   arg="resume_slug=$slug" ;;
+              *) echo "PR #$num: branch $branch isn't factory work — skipping"; continue ;;
+            esac
+
+            # Don't stack runs: skip if one is already going for this workflow.
+            running="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$wf" \
+                        --status in_progress --json databaseId --jq 'length')"
+            queued="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$wf" \
+                        --status queued --json databaseId --jq 'length')"
+            if [ "$running" != 0 ] || [ "$queued" != 0 ]; then
+              echo "PR #$num: a $wf run is already active — leaving it alone"; continue
+            fi
+
+            attempt=0
+            for l in $labels; do case "$l" in attempt-*) attempt="${l#attempt-}" ;; esac; done
+            next=$((attempt + 1))
+            if [ "$next" -gt "$MAX_ATTEMPTS" ]; then
+              gh pr edit "$num" --repo "$GITHUB_REPOSITORY" --remove-label in-progress --add-label stalled >/dev/null
+              gh pr comment "$num" --repo "$GITHUB_REPOSITORY" --body \
+                "Stopped auto-resuming after $MAX_ATTEMPTS attempts. Finished phases are committed on this branch. Re-run the workflow by hand to continue, or add \`in-progress\` back to restart the retries."
+              echo "PR #$num: gave up after $MAX_ATTEMPTS attempts"; continue
+            fi
+
+            gh label create "attempt-$next" --repo "$GITHUB_REPOSITORY" --force >/dev/null 2>&1 || true
+            gh pr edit "$num" --repo "$GITHUB_REPOSITORY" --add-label "attempt-$next" \
+              ${attempt:+--remove-label "attempt-$attempt"} >/dev/null 2>&1 || true
+            gh workflow run "$wf" --repo "$GITHUB_REPOSITORY" -f "$arg"
+            echo "PR #$num: resumed $wf for $slug (attempt $next)"
+          done

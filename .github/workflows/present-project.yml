@@ -2,8 +2,11 @@ name: Present project
 
 # Run the presentation team on a project that's already built: a new data story,
 # its own visual identity, charts from the real data, a story-led README, a fresh
-# deck, and the QA loop. Use it to restyle older decks or retry a failed deck.
-# Opens a PR; nothing lands until you merge it.
+# deck, and the QA loop.
+#
+# Every phase checkpoints to the branch as soon as it finishes, so hitting the
+# Claude usage limit costs one phase, not the run. Rerunning (by hand or by
+# resume.yml) skips the phases already recorded in projects/<slug>/.phases.
 
 on:
   workflow_dispatch:
@@ -11,6 +14,10 @@ on:
       slug:
         description: "Project to (re)present, e.g. 2026-09-11-cvss-vs-exploitation"
         required: true
+      fresh:
+        description: "Start over: ignore earlier checkpoints and redo every phase"
+        type: boolean
+        default: false
 
 concurrency:
   group: present-${{ inputs.slug }}
@@ -27,62 +34,100 @@ jobs:
     env:
       FACTORY_CONTACT_EMAIL: ${{ vars.FACTORY_CONTACT_EMAIL }}
       SLUG: ${{ inputs.slug }}
+      BRANCH: present/${{ inputs.slug }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-      - name: Validate slug
+      - name: Validate slug and pick up any earlier checkpoints
         run: |
           if ! [[ "$SLUG" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]{3,60}$ ]] || [ ! -d "projects/$SLUG" ]; then
             echo "::error::projects/$SLUG doesn't exist on main. Merge the project's PR first."
             exit 1
           fi
+          if git fetch -q origin "$BRANCH" 2>/dev/null; then
+            git checkout -q -B "$BRANCH" "origin/$BRANCH"
+            echo "::notice::resuming $BRANCH"
+          else
+            git checkout -q -B "$BRANCH"
+          fi
+          if [ "${{ inputs.fresh }}" = "true" ]; then
+            rm -f "projects/$SLUG/.phases"
+            echo "::notice::fresh run — earlier checkpoints ignored"
+          fi
+          [ -f "projects/$SLUG/.phases" ] && echo "done so far: $(tr '\n' ' ' < "projects/$SLUG/.phases")"
           printf '%s' "$SLUG" > .slug
 
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
-
       - name: Install factory tooling
         run: pip install -r scripts/requirements.txt
-
+      # Chrome (Marp, mermaid-cli, and the visual-QA agent's slide previews) can't
+      # start its sandbox under the AppArmor defaults on ubuntu-24.04 runners.
       - name: Allow Chrome sandbox
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
-      - name: Presentation team
-        id: team
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ github.token }}
-          settings: .github/agent-settings.json
-          prompt: "/factory-present ${{ inputs.slug }}"
-          claude_args: |
-            --model claude-opus-5
-            --permission-mode acceptEdits
-            --permission-prompts none
-            --max-turns 300
+      # ── The presentation team, one checkpointed phase at a time ───────────
+      - name: Story
+        uses: ./.github/actions/phase
+        with: { slug: "${{ inputs.slug }}", phase: story, prompt: "/factory-story",
+                branch: "present/${{ inputs.slug }}", max_turns: "40",
+                oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
-      # On failure, keep the agent transcript briefly so the cause (e.g. permission
-      # denials) can be diagnosed. Artifacts on a public repo are downloadable by any
-      # signed-in user, so: failures only, 3 days.
-      - name: Keep agent transcript
-        if: failure() && steps.team.outputs.execution_file != ''
-        uses: actions/upload-artifact@v7
-        with:
-          name: transcript-${{ inputs.slug }}-${{ github.run_id }}
-          path: ${{ steps.team.outputs.execution_file }}
-          retention-days: 3
+      - name: Identity
+        uses: ./.github/actions/phase
+        with: { slug: "${{ inputs.slug }}", phase: art, prompt: "/factory-art",
+                branch: "present/${{ inputs.slug }}", max_turns: "40",
+                oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
 
+      - name: Charts
+        uses: ./.github/actions/phase
+        with: { slug: "${{ inputs.slug }}", phase: viz, prompt: "/factory-viz",
+                branch: "present/${{ inputs.slug }}", max_turns: "90",
+                oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
+
+      - name: Docs
+        uses: ./.github/actions/phase
+        with: { slug: "${{ inputs.slug }}", phase: docs, prompt: "/factory-docs",
+                branch: "present/${{ inputs.slug }}", max_turns: "40",
+                oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
+
+      - name: Deck
+        uses: ./.github/actions/phase
+        with: { slug: "${{ inputs.slug }}", phase: deck, prompt: "/factory-deck",
+                branch: "present/${{ inputs.slug }}", max_turns: "50",
+                oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
+
+      - name: QA and revisions
+        uses: ./.github/actions/phase
+        with: { slug: "${{ inputs.slug }}", phase: qa, prompt: "/factory-qa",
+                branch: "present/${{ inputs.slug }}", max_turns: "120",
+                oauth_token: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" }
+
+      # ── Deterministic gates (skipped if a phase halted the run) ────────────
       - name: Gates
         id: gate
+        if: env.FACTORY_HALT != 'true'
         run: |
           bash scripts/gate.sh "$SLUG"
           cat .gate-results >> "$GITHUB_OUTPUT"
           if grep -q '=failure' .gate-results; then echo "ok=false" >> "$GITHUB_OUTPUT"; else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Commit rebuilt charts and rendered deck
+        if: env.FACTORY_HALT != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git reset -q
+          git add -- "projects/$SLUG"
+          git diff --cached --quiet || git commit -q -m "checkpoint(render): $SLUG"
+          git push -q origin "HEAD:$BRANCH"
 
       - name: Upload deck for review
         if: steps.gate.outputs.render == 'success'
@@ -92,41 +137,54 @@ jobs:
           path: projects/${{ inputs.slug }}/deck/dist/
           retention-days: 30
 
-      - name: Assemble PR body
+      - name: Open or update the pull request
+        if: always()
         env:
           OK: ${{ steps.gate.outputs.ok }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # Nothing was checkpointed (e.g. the very first phase was cut off), so there's
+          # no branch to open a PR against. Leave it for the next attempt.
+          if ! git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "::warning::no phase produced a commit yet — no PR to open. Re-run to retry."
+            exit 0
+          fi
+          done_phases="$(tr '\n' ' ' < "projects/$SLUG/.phases" 2>/dev/null || echo none)"
           {
-            [ "$OK" != true ] && printf '> [!WARNING]\n> Not every independent check passed. Draft for review, not for merge.\n\n'
-            echo "## New presentation: \`$SLUG\`"
-            echo
-            if [ -f "projects/$SLUG/deck/STORY.md" ]; then
-              grep -m1 -E '^\*\*The one insight:\*\*' "projects/$SLUG/deck/STORY.md" || true
-              grep -m1 -E '^\*\*Arc:\*\*' "projects/$SLUG/deck/STORY.md" || true
+            if [ "${FACTORY_HALT:-}" = true ]; then
+              echo "> [!NOTE]"
+              echo "> **Paused at the \`${FACTORY_FAILED_PHASE:-?}\` phase** — usually the Claude usage limit."
+              echo "> Finished phases are committed here. resume.yml retries hourly and picks up where this left off."
+              echo
+              echo "Phases done: \`$done_phases\`"
+            else
+              [ "$OK" != true ] && printf '> [!WARNING]\n> Not every independent check passed. Draft for review, not for merge.\n\n'
+              echo "## New presentation: \`$SLUG\`"
+              echo
+              [ -f "projects/$SLUG/deck/STORY.md" ] && grep -m1 -E '^\*\*The one insight:\*\*' "projects/$SLUG/deck/STORY.md" || true
+              [ -f "projects/$SLUG/deck/identity.json" ] && python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(f\"**Identity:** {d.get('name')} — {d.get('mood')}\")" "projects/$SLUG/deck/identity.json" || true
+              echo
+              echo "---"
+              cat .pr-checks.md 2>/dev/null || true
             fi
-            [ -f "projects/$SLUG/deck/identity.json" ] && python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(f\"**Identity:** {d.get('name')} — {d.get('mood')}\")" "projects/$SLUG/deck/identity.json"
             echo
-            echo "---"
-            cat .pr-checks.md
-            echo
-            echo "📎 Slides as PDF and PPTX: download the \`deck-$SLUG\` artifact from [this run]($RUN_URL)."
+            echo "📎 Slides as PDF and PPTX: the \`deck-$SLUG\` artifact on [this run]($RUN_URL)."
           } > .pr-body.md
 
-      # Unstage everything the agents may have staged, so only add-paths below can
-      # reach the commit. create-pull-request commits whatever is already staged, so
-      # without this a file staged outside projects/ would ride along.
-      - name: Unstage agent changes
-        run: git reset -q
+          for l in in-progress verified needs-work; do gh label create "$l" --force >/dev/null 2>&1 || true; done
+          if ! gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            gh pr create --draft --head "$BRANCH" --base main \
+              --title "New presentation: $SLUG" --body-file .pr-body.md
+          else
+            gh pr edit "$BRANCH" --body-file .pr-body.md
+          fi
 
-      - name: Open pull request
-        uses: peter-evans/create-pull-request@v8
-        with:
-          branch: present/${{ inputs.slug }}
-          title: "New presentation: ${{ inputs.slug }}"
-          commit-message: "Present ${{ inputs.slug }} with the presentation team"
-          body-path: .pr-body.md
-          add-paths: |
-            projects/${{ inputs.slug }}/**
-          draft: ${{ steps.gate.outputs.ok != 'true' }}
-          labels: ${{ steps.gate.outputs.ok == 'true' && 'verified' || 'needs-work' }}
+          if [ "${FACTORY_HALT:-}" = true ]; then
+            gh pr edit "$BRANCH" --add-label in-progress --remove-label verified --remove-label needs-work >/dev/null
+            echo "::notice::paused after ${FACTORY_FAILED_PHASE:-?}; resume.yml will retry"
+          elif [ "$OK" = true ]; then
+            gh pr edit "$BRANCH" --add-label verified --remove-label in-progress --remove-label needs-work >/dev/null
+            gh pr ready "$BRANCH" >/dev/null || true
+          else
+            gh pr edit "$BRANCH" --add-label needs-work --remove-label in-progress --remove-label verified >/dev/null
+          fi
